@@ -2059,17 +2059,25 @@ const ORBIT = {
     const app = this.apps[id];
     if (!app) return;
     const wcId = 'wc_' + id;
+    const iframeStyle = 'width:100%;height:100%;border:0';
+    const iframeSandbox = 'allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads';
+    const iframeReferrerPolicy = 'no-referrer';
+    const appHtml =
+      id === 'browser'
+        ? `<iframe src="https://gnome-steader.github.io/scramjet-static/" style="${iframeStyle}" sandbox="${iframeSandbox}" referrerpolicy="${iframeReferrerPolicy}" allowfullscreen></iframe>`
+        : id === 'chat'
+          ? `<iframe src="https://thssandbox.com/apps/gnomesteder/orbitos/groq.html" style="${iframeStyle}" sandbox="${iframeSandbox}" referrerpolicy="${iframeReferrerPolicy}" allowfullscreen></iframe>`
+          : `<div id="${wcId}" style="width:100%;height:100%;overflow:hidden"></div>`;
     WM.open({
       id, title: app.title, icon: app.icon,
       width: app.w, height: app.h,
-      html: `<div id="${wcId}" style="width:100%;height:100%;overflow:hidden"></div>`
+      html: appHtml
     });
     setTimeout(() => {
+      if (id === 'browser' || id === 'chat') return;
       const wc = document.getElementById(wcId);
       if (!wc) return;
-      if (id === 'browser')  BROWSERS[wcId] = new OBITBrowser(wcId);
-      else if (id === 'chat')     CHAT[wcId] = new ChatApp(wcId);
-      else if (id === 'notes')    NOTES[wcId] = new NotesApp(wcId);
+      if (id === 'notes')    NOTES[wcId] = new NotesApp(wcId);
       else if (id === 'files')    FM[wcId] = new FileManagerApp(wcId);
       else if (id === 'terminal') TERM[wcId] = new TerminalApp(wcId);
       else if (id === 'snake')    SNAKE[wcId] = new SnakeGame(wcId);
