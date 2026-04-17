@@ -2059,11 +2059,12 @@ const ORBIT = {
     const app = this.apps[id];
     if (!app) return;
     const wcId = 'wc_' + id;
+    const iframeAttrs = `style="width:100%;height:100%;border:0" sandbox="allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads" referrerpolicy="no-referrer" allowfullscreen`;
     const appHtml =
       id === 'browser'
-        ? `<iframe src="https://gnome-steader.github.io/scramjet-static/" style="width:100%;height:100%;border:0" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads" referrerpolicy="no-referrer" allowfullscreen></iframe>`
+        ? `<iframe src="https://gnome-steader.github.io/scramjet-static/" ${iframeAttrs}></iframe>`
         : id === 'chat'
-          ? `<iframe src="https://thssandbox.com/apps/gnomesteder/orbitos/groq.html" style="width:100%;height:100%;border:0" sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads" referrerpolicy="no-referrer" allowfullscreen></iframe>`
+          ? `<iframe src="https://thssandbox.com/apps/gnomesteder/orbitos/groq.html" ${iframeAttrs}></iframe>`
           : `<div id="${wcId}" style="width:100%;height:100%;overflow:hidden"></div>`;
     WM.open({
       id, title: app.title, icon: app.icon,
