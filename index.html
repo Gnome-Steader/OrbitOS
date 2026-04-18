@@ -317,41 +317,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 <div id="os">
   <div id="desktop" oncontextmenu="CTX.show(event)">
     <!-- Icons injected by JS -->
-<script>
-// Render desktop icons on boot
-function renderDesktop() {
-  const desktop = document.getElementById('desktop');
-  desktop.innerHTML = '';
-  
-  // Built-in apps
-  const builtInApps = ['browser', 'appstore', 'chat', 'notes', 'files', 'terminal', 'snake', 'settings', 'docs'];
-  builtInApps.forEach(appId => {
-    const app = ORBIT.apps[appId];
-    const icon = document.createElement('div');
-    icon.className = 'desk-icon';
-    icon.ondblclick = () => ORBIT.openApp(appId);
-    icon.innerHTML = `
-      <div class="desk-icon-img">${app.icon}</div>
-      <div class="desk-icon-label">${app.title}</div>
-    `;
-    desktop.appendChild(icon);
-  });
-  
-  // User-installed apps
-  const installed = JSON.parse(localStorage.getItem(ORBIT.installedStorageKey) || '[]');
-  installed.forEach(app => {
-    const icon = document.createElement('div');
-    icon.className = 'desk-icon';
-    icon.ondblclick = () => ORBIT.openApp(app.id);
-    icon.innerHTML = `
-      <div class="desk-icon-img">${app.icon}</div>
-      <div class="desk-icon-label">${app.name}</div>
-    `;
-    desktop.appendChild(icon);
-  });
-}
-renderDesktop();
-</script>
   </div>
   <div id="windows-layer"></div>
   <div id="dock">
