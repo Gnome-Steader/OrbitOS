@@ -14,7 +14,7 @@
   --surface3:rgba(22,22,58,0.95);--border:rgba(0,200,255,0.18);--border2:rgba(139,92,246,0.22);
   --blue:#00c8ff;--purple:#8b5cf6;--pink:#ec4899;--green:#10b981;--amber:#f59e0b;
   --text:#e2e4f0;--text-dim:#8b8fba;--text-muted:#4a4d6b;
-  --win-h:36px;--dock-h:68px;--radius:14px;--radius-sm:8px;
+  --win-h:36px;--dock-h:68px;--dock-hide-offset:18px;--radius:14px;--radius-sm:8px;
   --glow-b:0 0 24px rgba(0,200,255,0.35);--glow-p:0 0 24px rgba(139,92,246,0.35);
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -64,7 +64,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .ctx-sep{height:1px;background:var(--border);margin:4px 2px}
 
 /* === DOCK === */
-#dock{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;align-items:center;gap:6px;background:rgba(8,8,28,0.78);backdrop-filter:blur(32px) saturate(1.5);border:1px solid rgba(0,200,255,0.14);border-radius:22px;padding:8px 16px;box-shadow:0 12px 48px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.05)}
+#dock{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;align-items:center;gap:6px;background:rgba(8,8,28,0.78);backdrop-filter:blur(32px) saturate(1.5);border:1px solid rgba(0,200,255,0.14);border-radius:22px;padding:8px 16px;box-shadow:0 12px 48px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.05);transition:transform 0.18s ease,opacity 0.18s ease}
+#dock.hidden{transform:translateX(-50%) translateY(calc(100% + var(--dock-hide-offset)));opacity:0;pointer-events:none}
 .dock-sep{width:1px;height:36px;background:var(--border);margin:0 4px}
 .dock-item{position:relative;width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;border-radius:14px;transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);flex-shrink:0}
 .dock-item:hover{transform:scale(1.32) translateY(-8px)}
@@ -325,6 +326,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
       🌐
       <div class="dock-tooltip">ORBIT Browser</div>
     </div>
+    <div class="dock-item" onclick="ORBIT.openApp('appstore')" id="dock-appstore">
+      🛒
+      <div class="dock-tooltip">App Store</div>
+    </div>
     <div class="dock-item" onclick="ORBIT.openApp('chat')" id="dock-chat">
       💬
       <div class="dock-tooltip">NOVA AI</div>
@@ -365,6 +370,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
   <div class="ctx-item" onclick="ORBIT.openApp('browser');CTX.hide()">🌐 Open Browser</div>
+  <div class="ctx-item" onclick="ORBIT.openApp('appstore');CTX.hide()">🛒 Open App Store</div>
   <div class="ctx-item" onclick="ORBIT.openApp('chat');CTX.hide()">💬 Open NOVA AI</div>
   <div class="ctx-item" onclick="ORBIT.openApp('notes');CTX.hide()">📝 New Note</div>
   <div class="ctx-sep"></div>
@@ -662,349 +668,41 @@ const CTX = {
   hide() { this.el.style.display = 'none'; }
 };
 
-// === BROWSER APP ===
-class OBITBrowser {
-  constructor(wcId) {
-    this.wc = document.getElementById(wcId);
-    this.tabs = [];
-    this.activeTabId = null;
-    this.nextTabId = 1;
-    this.bookmarks = JSON.parse(localStorage.getItem('orbit_bookmarks') || '[]');
-    this.incognito = false;
-    this._render();
-    this.newTab('orbit://home');
-  }
-
-  _render() {
-    this.wc.innerHTML = `
-      <div class="browser">
-        <div class="browser-tabbar" id="${this.wc.id}_tabs">
-          <div class="b-tab-new" onclick="BROWSERS['${this.wc.id}'].newTab()" title="New Tab">+</div>
-        </div>
-        <div class="browser-nav">
-          <div class="b-nav-btn" id="${this.wc.id}_back" onclick="BROWSERS['${this.wc.id}'].back()" title="Back">◀</div>
-          <div class="b-nav-btn" id="${this.wc.id}_fwd" onclick="BROWSERS['${this.wc.id}'].forward()" title="Forward">▶</div>
-          <div class="b-nav-btn" onclick="BROWSERS['${this.wc.id}'].reload()" title="Reload">↺</div>
-          <input class="b-urlbar" id="${this.wc.id}_url" placeholder="Search or enter URL... (proxied via Scramjet)"
-            onkeydown="if(event.key==='Enter')BROWSERS['${this.wc.id}'].navigateInput(this.value)"
-            onfocus="this.select()">
-          <div class="b-extras">
-            <div class="b-extra-btn" onclick="BROWSERS['${this.wc.id}'].toggleBookmark()" title="Bookmark">☆</div>
-            <div class="b-extra-btn" onclick="BROWSERS['${this.wc.id}'].toggleBookmarkPanel()" title="Bookmarks">📚</div>
-            <div class="b-extra-btn" onclick="BROWSERS['${this.wc.id}'].toggleIncognito()" id="${this.wc.id}_incog" title="Incognito">🕵</div>
-          </div>
-        </div>
-        <div class="b-bookmarks-bar" id="${this.wc.id}_bkmbar"></div>
-        <div class="browser-main" id="${this.wc.id}_main">
-          <div class="b-loading" id="${this.wc.id}_loader"></div>
-          <div id="${this.wc.id}_frames"></div>
-          <div class="b-bkm-panel" id="${this.wc.id}_bkmpanel">
-            <div class="b-bkm-header">BOOKMARKS</div>
-            <div class="b-bkm-list" id="${this.wc.id}_bkmlist"></div>
-          </div>
-        </div>
-        <div class="b-status" id="${this.wc.id}_status"></div>
-      </div>
-    `;
-    this._renderBookmarksBar();
-  }
-
-  newTab(url = 'orbit://home') {
-    const id = this.nextTabId++;
-    const tab = {
-      id, url, displayUrl: url,
-      title: url === 'orbit://home' ? 'New Tab' : url,
-      history: [url], historyIndex: 0,
-      loading: false, favicon: '🌐', el: null, frameEl: null
-    };
-    this.tabs.push(tab);
-    this._renderTab(tab);
-    this._createFrame(tab);
-    this.activateTab(id);
-    if (url !== 'orbit://home') this.navigate(url, id);
-    return tab;
-  }
-
-  _renderTab(tab) {
-    const tabbar = document.getElementById(this.wc.id + '_tabs');
-    const newBtn = tabbar.querySelector('.b-tab-new');
-    const el = document.createElement('div');
-    el.className = 'b-tab';
-    el.id = `${this.wc.id}_tab_${tab.id}`;
-    el.onclick = (e) => { if (!e.target.classList.contains('b-tab-close')) this.activateTab(tab.id); };
-    el.innerHTML = `
-      <span style="font-size:12px">${tab.favicon}</span>
-      <span class="b-tab-title">${tab.title.substring(0,20)}</span>
-      <span class="b-tab-close" onclick="BROWSERS['${this.wc.id}'].closeTab(${tab.id})">×</span>
-    `;
-    tabbar.insertBefore(el, newBtn);
-    tab.el = el;
-  }
-
-  _createFrame(tab) {
-    const frames = document.getElementById(this.wc.id + '_frames');
-    const wrap = document.createElement('div');
-    wrap.className = 'b-frame-wrap';
-    wrap.id = `${this.wc.id}_frame_${tab.id}`;
-    wrap.style.display = 'none';
-    wrap.innerHTML = this._homeHTML();
-    frames.appendChild(wrap);
-    tab.frameEl = wrap;
-  }
-
-  activateTab(id) {
-    this.tabs.forEach(t => {
-      if (t.el) t.el.classList.toggle('active', t.id === id);
-      if (t.frameEl) t.frameEl.style.display = t.id === id ? 'block' : 'none';
+// === DOCK AUTO-HIDE ===
+const DOCK = {
+  el: document.getElementById('dock'),
+  hover: false,
+  bottomEdgePixelThreshold: 14,
+  pendingMoveEvent: null,
+  rafId: null,
+  init() {
+    if (!this.el) return;
+    this.el.classList.add('hidden');
+    this.el.addEventListener('mouseenter', () => { this.hover = true; this.show(); });
+    this.el.addEventListener('mouseleave', () => { this.hover = false; });
+    document.addEventListener('mousemove', e => {
+      this.pendingMoveEvent = e;
+      if (this.rafId) return;
+      this.rafId = requestAnimationFrame(() => {
+        this.rafId = null;
+        const evt = this.pendingMoveEvent;
+        this.pendingMoveEvent = null;
+        if (evt) this._onPointerMove(evt);
+      });
     });
-    this.activeTabId = id;
-    this._updateNavBar();
-  }
+    document.addEventListener('touchstart', () => this.show(), { passive: true });
+  },
+  _onPointerMove(e) {
+    if (!this.el) return;
+    const nearBottom = e.clientY >= window.innerHeight - this.bottomEdgePixelThreshold;
+    if (this.hover || nearBottom) this.show();
+    else this.hide();
+  },
+  show() { this.el.classList.remove('hidden'); },
+  hide() { if (!this.hover) this.el.classList.add('hidden'); }
+};
 
-  closeTab(id) {
-    const idx = this.tabs.findIndex(t => t.id === id);
-    if (idx === -1) return;
-    const tab = this.tabs[idx];
-    if (tab.el) tab.el.remove();
-    if (tab.frameEl) tab.frameEl.remove();
-    this.tabs.splice(idx, 1);
-    if (this.tabs.length === 0) this.newTab();
-    else if (this.activeTabId === id) {
-      this.activateTab(this.tabs[Math.min(idx, this.tabs.length - 1)].id);
-    }
-  }
-
-  get activeTab() { return this.tabs.find(t => t.id === this.activeTabId); }
-
-  navigateInput(raw) {
-    let url = raw.trim();
-    if (!url) return;
-    if (!url.startsWith('orbit://') && !url.match(/^https?:\/\//i) && !url.includes('.')) {
-      url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
-    }
-    this.navigate(url);
-  }
-
-  navigate(url, tabId = this.activeTabId) {
-    const tab = this.tabs.find(t => t.id === tabId);
-    if (!tab) return;
-    const proxied = Scramjet.rewrite(url);
-    const display = url;
-    tab.history = tab.history.slice(0, tab.historyIndex + 1);
-    tab.history.push(url);
-    tab.historyIndex = tab.history.length - 1;
-    tab.url = url;
-    tab.displayUrl = display;
-    this._loadFrame(tab, url, proxied);
-    this._updateNavBar();
-  }
-
-  back() {
-    const tab = this.activeTab;
-    if (!tab || tab.historyIndex <= 0) return;
-    tab.historyIndex--;
-    tab.url = tab.history[tab.historyIndex];
-    this._loadFrame(tab, tab.url, Scramjet.rewrite(tab.url));
-    this._updateNavBar();
-  }
-
-  forward() {
-    const tab = this.activeTab;
-    if (!tab || tab.historyIndex >= tab.history.length - 1) return;
-    tab.historyIndex++;
-    tab.url = tab.history[tab.historyIndex];
-    this._loadFrame(tab, tab.url, Scramjet.rewrite(tab.url));
-    this._updateNavBar();
-  }
-
-  reload() {
-    const tab = this.activeTab;
-    if (!tab) return;
-    this._loadFrame(tab, tab.url, Scramjet.rewrite(tab.url));
-  }
-
-  _loadFrame(tab, originalUrl, proxiedUrl) {
-    if (originalUrl === 'orbit://home') {
-      tab.frameEl.innerHTML = this._homeHTML();
-      tab.title = 'New Tab';
-      this._updateTab(tab);
-      this._updateUrlBar(originalUrl);
-      this._setLoading(false);
-      return;
-    }
-
-    // Show scramjet proxy info page
-    this._setLoading(true);
-    tab.frameEl.innerHTML = this._proxyInfoHTML(originalUrl, proxiedUrl);
-    tab.title = this._getDomain(originalUrl);
-    this._updateTab(tab);
-    this._updateUrlBar(originalUrl);
-
-    setTimeout(() => this._setLoading(false), 1200);
-  }
-
-  _homeHTML() {
-    const shortcuts = [
-      {icon:'🔍',name:'Google',url:'https://google.com'},
-      {icon:'📰',name:'News',url:'https://news.ycombinator.com'},
-      {icon:'🐙',name:'GitHub',url:'https://github.com'},
-      {icon:'▶️',name:'YouTube',url:'https://youtube.com'},
-      {icon:'🐦',name:'Twitter',url:'https://twitter.com'},
-      {icon:'🤖',name:'Claude',url:'https://claude.ai'},
-    ];
-    const shortcutsHtml = shortcuts.map(s =>
-      `<div class="b-quick-link" onclick="BROWSERS['${this.wc.id}'].navigate('${s.url}')">
-        <div class="b-quick-link-ico">${s.icon}</div>
-        <span>${s.name}</span>
-       </div>`).join('');
-    return `
-      <div class="b-home">
-        <div class="b-home-logo">ORBIT</div>
-        <div style="font-size:12px;color:var(--text-dim);letter-spacing:1px">Browser · Powered by Scramjet</div>
-        <div class="b-search">
-          <input class="b-search-bar" placeholder="Search the web or enter URL..."
-            onkeydown="if(event.key==='Enter')BROWSERS['${this.wc.id}'].navigateInput(this.value)">
-          <div class="b-search-btn" onclick="BROWSERS['${this.wc.id}'].navigateInput(this.previousElementSibling.value)">🔍</div>
-        </div>
-        <div class="b-quick-links">${shortcutsHtml}</div>
-        <div style="margin-top:8px;font-size:10px;color:var(--text-muted);text-align:center;letter-spacing:1px">
-          🛡 ORBIT Browser v1.0 · Scramjet Proxy Engine · Bare Server Protocol v3
-        </div>
-      </div>
-    `;
-  }
-
-  _proxyInfoHTML(url, proxied) {
-    const domain = this._getDomain(url);
-    const isSecure = url.startsWith('https://');
-    return `
-      <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg2);padding:32px;overflow-y:auto">
-        <div style="font-size:40px">${isSecure ? '🔒' : '🌐'}</div>
-        <div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--blue)">${domain}</div>
-        <div style="font-size:12px;color:var(--text-dim);text-align:center;max-width:500px">
-          In production, this page loads through the <strong style="color:var(--blue)">Scramjet service worker</strong> 
-          connecting to your <strong style="color:var(--purple)">Bare server</strong>. 
-          Deploy the backend to enable live proxying.
-        </div>
-        <div class="b-scramjet-info">
-          <strong>📡 Original URL</strong>${url}
-          <strong style="margin-top:8px;display:block">🔀 Scramjet Proxied URL (encoded)</strong>${proxied}
-          <strong style="margin-top:8px;display:block">⚙️ Bare Server Endpoint</strong>${Scramjet.BARE_SERVER}
-          <strong style="margin-top:8px;display:block">🔧 Service Worker Path</strong>${Scramjet.SW_PATH}
-          <strong style="margin-top:8px;display:block">🔑 Codec</strong>base64url (URL-safe, no padding)
-        </div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
-          <div onclick="BROWSERS['${this.wc.id}'].navigate('${url}')" 
-               style="padding:8px 20px;border-radius:20px;background:linear-gradient(135deg,var(--blue),var(--purple));cursor:pointer;font-size:12px;font-weight:600;box-shadow:var(--glow-b)">
-            ↗ Open Directly
-          </div>
-          <div onclick="BROWSERS['${this.wc.id}'].back()"
-               style="padding:8px 20px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-size:12px;color:var(--text-dim)">
-            ← Back
-          </div>
-        </div>
-        <div style="margin-top:8px;font-size:10px;color:var(--text-muted);text-align:center;max-width:420px;line-height:1.6">
-          Deploy <span style="color:var(--blue)">@mercuryworkshop/bare-server-node</span> + 
-          register <span style="color:var(--purple)">scramjet-controller</span> service worker to enable live proxy
-        </div>
-      </div>
-    `;
-  }
-
-  _getDomain(url) {
-    try { return new URL(url).hostname; } catch { return url.substring(0,30); }
-  }
-
-  _updateNavBar() {
-    const tab = this.activeTab;
-    if (!tab) return;
-    const urlInput = document.getElementById(this.wc.id + '_url');
-    if (urlInput) urlInput.value = tab.url === 'orbit://home' ? '' : tab.url;
-    const back = document.getElementById(this.wc.id + '_back');
-    const fwd = document.getElementById(this.wc.id + '_fwd');
-    if (back) back.classList.toggle('disabled', tab.historyIndex <= 0);
-    if (fwd) fwd.classList.toggle('disabled', tab.historyIndex >= tab.history.length - 1);
-  }
-
-  _updateUrlBar(url) {
-    const el = document.getElementById(this.wc.id + '_url');
-    if (el) el.value = url === 'orbit://home' ? '' : url;
-  }
-
-  _updateTab(tab) {
-    if (!tab.el) return;
-    const title = tab.el.querySelector('.b-tab-title');
-    if (title) title.textContent = tab.title.substring(0, 18);
-  }
-
-  _setLoading(on) {
-    const loader = document.getElementById(this.wc.id + '_loader');
-    if (loader) loader.classList.toggle('show', on);
-  }
-
-  toggleBookmark() {
-    const tab = this.activeTab;
-    if (!tab || tab.url === 'orbit://home') return;
-    const idx = this.bookmarks.findIndex(b => b.url === tab.url);
-    if (idx >= 0) this.bookmarks.splice(idx, 1);
-    else this.bookmarks.push({ url: tab.url, title: tab.title, favicon: '🔖' });
-    localStorage.setItem('orbit_bookmarks', JSON.stringify(this.bookmarks));
-    this._renderBookmarksBar();
-    this._renderBookmarksList();
-  }
-
-  toggleBookmarkPanel() {
-    const panel = document.getElementById(this.wc.id + '_bkmpanel');
-    if (panel) { panel.classList.toggle('open'); this._renderBookmarksList(); }
-  }
-
-  _renderBookmarksBar() {
-    const bar = document.getElementById(this.wc.id + '_bkmbar');
-    if (!bar) return;
-    bar.innerHTML = this.bookmarks.slice(0, 8).map(b =>
-      `<div class="b-bookmark" onclick="BROWSERS['${this.wc.id}'].navigate('${b.url}')" 
-            onmouseover="BROWSERS['${this.wc.id}']._showStatus('${b.url}')"
-            onmouseout="BROWSERS['${this.wc.id}']._hideStatus()">
-         ${b.favicon} ${b.title.substring(0,20)}
-       </div>`).join('');
-  }
-
-  _renderBookmarksList() {
-    const list = document.getElementById(this.wc.id + '_bkmlist');
-    if (!list) return;
-    list.innerHTML = this.bookmarks.length ? this.bookmarks.map((b,i) =>
-      `<div class="b-bkm-item">
-        <span onclick="BROWSERS['${this.wc.id}'].navigate('${b.url}')" style="flex:1">${b.favicon} ${b.title.substring(0,24)}</span>
-        <span class="b-bkm-del" onclick="BROWSERS['${this.wc.id}'].removeBookmark(${i})">✕</span>
-       </div>`).join('') :
-      `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">No bookmarks yet</div>`;
-  }
-
-  removeBookmark(i) {
-    this.bookmarks.splice(i, 1);
-    localStorage.setItem('orbit_bookmarks', JSON.stringify(this.bookmarks));
-    this._renderBookmarksBar();
-    this._renderBookmarksList();
-  }
-
-  toggleIncognito() {
-    this.incognito = !this.incognito;
-    const btn = document.getElementById(this.wc.id + '_incog');
-    const urlbar = document.getElementById(this.wc.id + '_url');
-    if (btn) btn.style.background = this.incognito ? 'rgba(139,92,246,0.2)' : '';
-    if (urlbar) urlbar.classList.toggle('incognito', this.incognito);
-  }
-
-  _showStatus(url) {
-    const el = document.getElementById(this.wc.id + '_status');
-    if (el) { el.textContent = url; el.classList.add('show'); }
-  }
-
-  _hideStatus() {
-    const el = document.getElementById(this.wc.id + '_status');
-    if (el) el.classList.remove('show');
-  }
-}
+// === BROWSER APP (legacy scramjet browser removed) ===
 
 // === NOTES APP ===
 class NotesApp {
@@ -1397,30 +1095,30 @@ class SettingsApp {
       privacy: `
         <div class="settings-section">
           <div class="settings-section-title">Privacy & Security</div>
-          <div class="settings-row"><div><div class="settings-row-label">Block Trackers</div><div class="settings-row-desc">Via Scramjet headers</div></div>
+          <div class="settings-row"><div><div class="settings-row-label">Block Trackers</div><div class="settings-row-desc">Use strict anti-tracking rules</div></div>
             <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
           <div class="settings-row"><div><div class="settings-row-label">HTTPS Only Mode</div><div class="settings-row-desc">Upgrade insecure requests</div></div>
             <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
           <div class="settings-row"><div><div class="settings-row-label">Save History</div><div class="settings-row-desc">Per-tab browsing history</div></div>
             <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
-          <div class="settings-row"><div><div class="settings-row-label">Scramjet Codec</div></div>
-            <select class="settings-select"><option>Base64 URL</option><option>XOR</option><option>Plain</option></select></div>
+          <div class="settings-row"><div><div class="settings-row-label">Cookie Policy</div></div>
+            <select class="settings-select"><option>Balanced</option><option>Strict</option><option>Allow All</option></select></div>
         </div>`,
       network: `
         <div class="settings-section">
-          <div class="settings-section-title">Scramjet Proxy</div>
-          <div class="settings-row"><div><div class="settings-row-label">Bare Server URL</div></div>
-            <input style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);width:140px" value="${Scramjet.BARE_SERVER}"></div>
-          <div class="settings-row"><div><div class="settings-row-label">Service Worker</div></div>
-            <input style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);width:140px" value="${Scramjet.SW_PATH}"></div>
-          <div class="settings-row"><div><div class="settings-row-label">Proxy Status</div></div>
-            <span style="font-size:11px;color:var(--amber)">⚠ Backend Required</span></div>
+          <div class="settings-section-title">Network</div>
+          <div class="settings-row"><div><div class="settings-row-label">Default Search</div></div>
+            <select class="settings-select"><option>Google</option><option>DuckDuckGo</option><option>Bing</option></select></div>
+          <div class="settings-row"><div><div class="settings-row-label">Open Links In</div></div>
+            <select class="settings-select"><option>Current Tab</option><option>New Tab</option></select></div>
+          <div class="settings-row"><div><div class="settings-row-label">Connection Status</div></div>
+            <span style="font-size:11px;color:var(--green)">● Online</span></div>
         </div>`,
       system: `
         <div class="settings-section">
           <div class="settings-section-title">System</div>
           <div class="settings-row"><div><div class="settings-row-label">Kernel</div></div><span style="font-size:11px;color:var(--text-dim)">ORBIT v1.0.0</span></div>
-          <div class="settings-row"><div><div class="settings-row-label">Scramjet</div></div><span style="font-size:11px;color:var(--text-dim)">v2.0 (Simulated)</span></div>
+          <div class="settings-row"><div><div class="settings-row-label">Browser Mode</div></div><span style="font-size:11px;color:var(--text-dim)">Direct iframe</span></div>
           <div class="settings-row"><div><div class="settings-row-label">Renderer</div></div><span style="font-size:11px;color:var(--text-dim)">${navigator.userAgent.includes('Chrome')?'Blink':'WebKit'}</span></div>
           <div class="settings-row"><div><div class="settings-row-label">Memory</div></div><span style="font-size:11px;color:var(--text-dim)">~${Math.round((performance.memory?.usedJSHeapSize||0)/1024/1024)||'--'} MB used</span></div>
         </div>`,
@@ -1429,13 +1127,13 @@ class SettingsApp {
           <div class="about-orbit-logo">ORBIT</div>
           <div class="about-orbit-ver">Browser OS v1.0 · Build 2025</div>
           <div style="margin:20px 0;color:var(--text-dim);font-size:13px;line-height:1.8;max-width:400px;margin-left:auto;margin-right:auto">
-            A next-generation browser OS powered by the Scramjet proxy engine.<br>
+            A next-generation browser OS with a dynamic app ecosystem.<br>
             Built for privacy, speed, and a cosmic experience.
           </div>
           <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-            <span style="padding:4px 12px;border-radius:6px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.2);font-size:11px;color:var(--blue)">Scramjet v2</span>
-            <span style="padding:4px 12px;border-radius:6px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);font-size:11px;color:var(--purple)">Bare v3</span>
-            <span style="padding:4px 12px;border-radius:6px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);font-size:11px;color:var(--green)">Service Worker</span>
+            <span style="padding:4px 12px;border-radius:6px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.2);font-size:11px;color:var(--blue)">Window Manager</span>
+            <span style="padding:4px 12px;border-radius:6px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);font-size:11px;color:var(--purple)">App Store</span>
+            <span style="padding:4px 12px;border-radius:6px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);font-size:11px;color:var(--green)">Iframe Apps</span>
           </div>
         </div>`
     };
@@ -1446,6 +1144,64 @@ class SettingsApp {
     document.documentElement.style.setProperty('--blue', color);
     document.querySelectorAll('.settings-color-swatch').forEach(s => s.classList.remove('active'));
     el.classList.add('active');
+  }
+}
+
+// === APP STORE ===
+class AppStoreApp {
+  constructor(wcId) {
+    this.wc = document.getElementById(wcId);
+    this._render();
+  }
+
+  _render() {
+    const apps = ORBIT.appCatalog || [];
+    const cards = apps.map(app => {
+      const installed = ORBIT.isInstalled(app.id);
+      const escapedName = ORBIT.escapeHTML(app.name || app.id);
+      const escapedAuthor = ORBIT.escapeHTML(app.author || 'Unknown author');
+      const escapedCategory = ORBIT.escapeHTML(app.category || 'General');
+      const escapedDescription = ORBIT.escapeHTML(app.description || 'No description provided.');
+      const encodedId = encodeURIComponent(app.id || '');
+      const safeIconUrl = ORBIT.safeHttpUrl(app.icon);
+      const icon = safeIconUrl ? `<img src="${safeIconUrl}" alt="${escapedName}" loading="lazy" crossorigin="anonymous" referrerpolicy="no-referrer" style="width:48px;height:48px;border-radius:12px;object-fit:cover">` : '🧩';
+      return `
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;gap:12px;align-items:flex-start">
+          <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;flex-shrink:0">${icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600">${escapedName}</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:2px">${escapedAuthor} · ${escapedCategory}</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.45">${escapedDescription}</div>
+          </div>
+          <button onclick="APPSTORE['${this.wc.id}'].install(decodeURIComponent('${encodedId}'))"
+            style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:${installed ? 'rgba(16,185,129,0.2)' : 'rgba(0,200,255,0.12)'};color:${installed ? 'var(--green)' : 'var(--blue)'};font-size:12px;cursor:pointer;flex-shrink:0">
+            ${installed ? 'Installed' : 'Install'}
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    this.wc.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;background:var(--bg2)">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-family:'Orbitron',monospace;font-size:13px;color:var(--blue);letter-spacing:1px">
+          ORBIT APP STORE
+          <span style="display:block;font-family:'Rajdhani',sans-serif;font-size:11px;color:var(--text-dim);letter-spacing:0.5px;margin-top:2px">
+            Install apps from the app list.
+          </span>
+        </div>
+        <div id="${this.wc.id}_status" style="padding:10px 16px;font-size:11px;color:var(--text-dim)">${apps.length} app(s) available</div>
+        <div style="flex:1;overflow:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:10px">
+          ${apps.length ? cards : `<div style="color:var(--text-dim);font-size:12px;padding:10px">No apps available in app list.</div>`}
+        </div>
+      </div>
+    `;
+  }
+
+  install(appId) {
+    const ok = ORBIT.installApp(appId);
+    const status = document.getElementById(this.wc.id + '_status');
+    if (status) status.textContent = ok ? `Installed "${appId}"` : `Unable to install "${appId}"`;
+    this._render();
   }
 }
 
@@ -2041,12 +1797,15 @@ DOCS[wcId]      // ArchDocsApp instances</div>`
 }
 
 // === GLOBAL APP REGISTRIES ===
-const BROWSERS = {}, CHAT = {}, NOTES = {}, FM = {}, SNAKE = {}, TERM = {}, SETT = {}, DOCS = {};
+const BROWSERS = {}, CHAT = {}, NOTES = {}, FM = {}, SNAKE = {}, TERM = {}, SETT = {}, DOCS = {}, APPSTORE = {};
 
 // === ORBIT MAIN CONTROLLER ===
 const ORBIT = {
+  installedStorageKey: 'orbit_installed_apps',
+  appCatalog: [],
   apps: {
-    browser:  { title:'ORBIT Browser',   icon:'🌐', w:920, h:580 },
+    browser:  { title:'ORBIT Browser',   icon:'🌐', w:920, h:580, url:'https://gnome-steader.github.io/scramjet-static/' },
+    appstore: { title:'App Store',       icon:'🛒', w:760, h:560 },
     chat:     { title:'NOVA AI',         icon:'💬', w:480, h:580 },
     notes:    { title:'Notes',           icon:'📝', w:680, h:500 },
     files:    { title:'File Manager',    icon:'🗂️', w:720, h:500 },
@@ -2056,6 +1815,107 @@ const ORBIT = {
     docs:     { title:'Architecture Docs',icon:'📡',w:860, h:580 },
   },
 
+  escapeHTML(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  },
+
+  safeHttpUrl(value) {
+    try {
+      const url = new URL(String(value || ''));
+      return (url.protocol === 'http:' || url.protocol === 'https:') ? url.href : '';
+    } catch {
+      return '';
+    }
+  },
+
+  async init() {
+    await this.loadCatalog();
+    this.syncInstalledApps();
+    this.buildDesktop();
+  },
+
+  async loadCatalog() {
+    try {
+      const res = await fetch('https://raw.githubusercontent.com/Gnome-Steader/OrbitOS/refs/heads/copilot/auto-hide-bottom-menu/apps.json');
+      if (!res.ok) throw new Error('Catalog fetch failed');
+      const data = await res.json();
+      const raw = Array.isArray(data) ? data : [];
+      this.appCatalog = raw.map(app => {
+        const id = String(app?.id ?? '').trim();
+        return {
+          id,
+          name: String(app?.name ?? id).trim(),
+          icon: this.safeHttpUrl(app?.icon),
+          url: this.safeHttpUrl(app?.url),
+          description: String(app?.description ?? '').trim(),
+          author: String(app?.author ?? '').trim(),
+          category: String(app?.category ?? '').trim()
+        };
+      }).filter(app => app.id && app.url);
+    } catch (error) {
+      console.warn('Unable to load apps.json catalog', error);
+      this.appCatalog = [];
+    }
+  },
+
+  getInstalledIds() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(this.installedStorageKey) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  },
+
+  isInstalled(appId) { return this.getInstalledIds().includes(appId); },
+
+  syncInstalledApps() {
+    const installedKeys = Object.keys(this.apps).filter(id => this.apps[id]?.installed);
+    installedKeys.forEach(id => delete this.apps[id]);
+    const ids = this.getInstalledIds();
+    ids.forEach(id => {
+      const app = this.appCatalog.find(a => a.id === id);
+      if (!app) return;
+      this.apps[id] = {
+        title: app.name || id,
+        icon: '🧩',
+        iconUrl: app.icon || '',
+        w: 920,
+        h: 580,
+        url: app.url,
+        installed: true
+      };
+    });
+  },
+
+  installApp(appId) {
+    const inCatalog = this.appCatalog.some(app => app.id === appId);
+    if (!inCatalog) return false;
+    const ids = this.getInstalledIds();
+    if (!ids.includes(appId)) {
+      ids.push(appId);
+      try {
+        localStorage.setItem(this.installedStorageKey, JSON.stringify(ids));
+      } catch {
+        return false;
+      }
+    }
+    this.syncInstalledApps();
+    this.buildDesktop();
+    return true;
+  },
+
+  _iconMarkup(app) {
+    const iconUrl = this.safeHttpUrl(app.iconUrl) || this.safeHttpUrl(app.icon);
+    if (iconUrl) return `<img src="${iconUrl}" alt="${this.escapeHTML(app.title || 'App')}" loading="lazy" crossorigin="anonymous" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+    return app.icon || '🧩';
+  },
+
   openApp(id) {
     const app = this.apps[id];
     if (!app) return;
@@ -2063,9 +1923,12 @@ const ORBIT = {
     const iframeStyle = 'width:100%;height:100%;border:0';
     const iframeSandbox = 'allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads allow-same-origin';
     const iframeReferrerPolicy = 'no-referrer';
+    const iframeUrl = this.safeHttpUrl(app.url);
     const appHtml =
-      id === 'browser'
-        ? `<iframe src="https://gnome-steader.github.io/scramjet-static/" style="${iframeStyle}" sandbox="${iframeSandbox}" referrerpolicy="${iframeReferrerPolicy}" allowfullscreen></iframe>`
+      app.url
+        ? (iframeUrl
+            ? `<iframe src="${iframeUrl}" style="${iframeStyle}" sandbox="${iframeSandbox}" referrerpolicy="${iframeReferrerPolicy}" allowfullscreen></iframe>`
+            : `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:20px;text-align:center;color:var(--text-dim)">Invalid app URL</div>`)
         : id === 'chat'
           ? `<iframe src="https://thssandbox.com/apps/gnomesteder/orbitos/groq.html" style="${iframeStyle}" sandbox="${iframeSandbox}" referrerpolicy="${iframeReferrerPolicy}" allowfullscreen></iframe>`
           : `<div id="${wcId}" style="width:100%;height:100%;overflow:hidden"></div>`;
@@ -2075,7 +1938,7 @@ const ORBIT = {
       html: appHtml
     });
     setTimeout(() => {
-      if (id === 'browser' || id === 'chat') return;
+      if (app.url || id === 'chat') return;
       const wc = document.getElementById(wcId);
       if (!wc) return;
       if (id === 'notes')    NOTES[wcId] = new NotesApp(wcId);
@@ -2084,29 +1947,37 @@ const ORBIT = {
       else if (id === 'snake')    SNAKE[wcId] = new SnakeGame(wcId);
       else if (id === 'settings') SETT[wcId] = new SettingsApp(wcId);
       else if (id === 'docs')     DOCS[wcId] = new ArchDocsApp(wcId);
+      else if (id === 'appstore') APPSTORE[wcId] = new AppStoreApp(wcId);
     }, 50);
   },
 
   buildDesktop() {
     const desktop = document.getElementById('desktop');
     const icons = [
-      { id:'browser',  emoji:'🌐', label:'ORBIT Browser' },
-      { id:'chat',     emoji:'💬', label:'NOVA AI' },
-      { id:'notes',    emoji:'📝', label:'Notes' },
-      { id:'files',    emoji:'🗂️', label:'Files' },
-      { id:'terminal', emoji:'⌨️', label:'Terminal' },
-      { id:'snake',    emoji:'🐍', label:'Snake' },
-      { id:'docs',     emoji:'📡', label:'Arch Docs' },
-      { id:'settings', emoji:'⚙️', label:'Settings' },
+      { id:'browser', label:'ORBIT Browser' },
+      { id:'appstore', label:'App Store' },
+      { id:'chat', label:'NOVA AI' },
+      { id:'notes', label:'Notes' },
+      { id:'files', label:'Files' },
+      { id:'terminal', label:'Terminal' },
+      { id:'snake', label:'Snake' },
+      { id:'docs', label:'Arch Docs' },
+      { id:'settings', label:'Settings' },
+      ...Object.keys(this.apps)
+        .filter(id => this.apps[id]?.installed)
+        .map(id => ({ id, label: this.apps[id].title })),
     ];
     const colors = ['rgba(0,200,255,0.15)','rgba(139,92,246,0.15)','rgba(16,185,129,0.15)',
                     'rgba(245,158,11,0.15)','rgba(236,72,153,0.15)','rgba(0,200,255,0.12)',
-                    'rgba(139,92,246,0.12)','rgba(16,185,129,0.12)'];
-    desktop.innerHTML = icons.map((app,i) => `
-      <div class="desk-icon" ondblclick="ORBIT.openApp('${app.id}')">
-        <div class="desk-icon-img" style="background:${colors[i]};border:1px solid ${colors[i].replace('0.15','0.4').replace('0.12','0.35')}">${app.emoji}</div>
-        <div class="desk-icon-label">${app.label}</div>
-      </div>`).join('');
+                    'rgba(139,92,246,0.12)','rgba(16,185,129,0.12)','rgba(245,158,11,0.12)'];
+    desktop.innerHTML = icons.map((app,i) => {
+      const encodedId = encodeURIComponent(app.id);
+      return `
+      <div class="desk-icon" ondblclick="ORBIT.openApp(decodeURIComponent('${encodedId}'))">
+        <div class="desk-icon-img" style="background:${colors[i % colors.length]};border:1px solid ${colors[i % colors.length].replace('0.15','0.4').replace('0.12','0.35')};overflow:hidden">${ORBIT._iconMarkup(ORBIT.apps[app.id] || {})}</div>
+        <div class="desk-icon-label">${app.label || app.id}</div>
+      </div>`;
+    }).join('');
   }
 };
 
@@ -2130,9 +2001,10 @@ const STARS = new StarField();
 
 const bootMessages = [
   'Initializing ORBIT kernel...',
-  'Loading Scramjet proxy engine...',
-  'Registering service worker...',
-  'Connecting to Bare server...',
+  'Loading browser runtime...',
+  'Preparing iframe apps...',
+  'Loading app catalog...',
+  'Connecting desktop services...',
   'Mounting virtual filesystem...',
   'Initializing NOVA AI...',
   'Building desktop environment...',
@@ -2148,7 +2020,8 @@ function bootTick() {
     setTimeout(() => {
       document.getElementById('boot').classList.add('hidden');
       document.getElementById('os').style.display = 'block';
-      ORBIT.buildDesktop();
+      DOCK.init();
+      ORBIT.init();
       updateClock();
       setInterval(updateClock, 1000);
       setTimeout(() => ORBIT.openApp('browser'), 400);
