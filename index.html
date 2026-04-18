@@ -1163,7 +1163,7 @@ class AppStoreApp {
       const escapedDescription = ORBIT.escapeHTML(app.description || 'No description provided.');
       const encodedId = encodeURIComponent(app.id || '');
       const safeIconUrl = ORBIT.safeHttpUrl(app.icon);
-      const icon = safeIconUrl ? `<img src="${safeIconUrl}" alt="${escapedName}" style="width:48px;height:48px;border-radius:12px;object-fit:cover">` : '🧩';
+      const icon = safeIconUrl ? `<img src="${safeIconUrl}" alt="${escapedName}" loading="lazy" crossorigin="anonymous" referrerpolicy="no-referrer" style="width:48px;height:48px;border-radius:12px;object-fit:cover">` : '🧩';
       return `
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;gap:12px;align-items:flex-start">
           <div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(255,255,255,0.04);overflow:hidden;flex-shrink:0">${icon}</div>
@@ -1911,7 +1911,7 @@ const ORBIT = {
 
   _iconMarkup(app) {
     const iconUrl = this.safeHttpUrl(app.iconUrl) || this.safeHttpUrl(app.icon);
-    if (iconUrl) return `<img src="${iconUrl}" alt="${this.escapeHTML(app.title || 'App')}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
+    if (iconUrl) return `<img src="${iconUrl}" alt="${this.escapeHTML(app.title || 'App')}" loading="lazy" crossorigin="anonymous" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:10px">`;
     return app.icon || '🧩';
   },
 
