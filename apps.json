@@ -1,0 +1,11 @@
+[
+  {
+    "id": "exampleApp",
+    "name": "Example App!",
+    "icon": "https://fastly.picsum.photos/id/8/536/354.jpg?hmac=iq32r2KbxTL0059Bkv9d-S_TbkSEY2c4bhmkvgcJylk",
+    "url": "https://example.com/",
+    "description": "A cool example app for demos.",
+    "author": "example author",
+    "category": "Demo"
+  }
+]
