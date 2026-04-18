@@ -1985,34 +1985,33 @@ const ORBIT = {
   },
 
   buildDesktop() {
-    const desktop = document.getElementById('desktop');
-    const icons = [
-      { id:'browser', label:'ORBIT Browser' },
-      { id:'appstore', label:'App Store' },
-      { id:'chat', label:'NOVA AI' },
-      { id:'notes', label:'Notes' },
-      { id:'files', label:'Files' },
-      { id:'terminal', label:'Terminal' },
-      { id:'snake', label:'Snake' },
-      { id:'docs', label:'Arch Docs' },
-      { id:'settings', label:'Settings' },
-      ...Object.keys(this.apps)
-        .filter(id => this.apps[id]?.installed)
-        .map(id => ({ id, label: this.apps[id].title })),
-    ];
-    const colors = ['rgba(0,200,255,0.15)','rgba(139,92,246,0.15)','rgba(16,185,129,0.15)',
-                    'rgba(245,158,11,0.15)','rgba(236,72,153,0.15)','rgba(0,200,255,0.12)',
-                    'rgba(139,92,246,0.12)','rgba(16,185,129,0.12)','rgba(245,158,11,0.12)'];
-    desktop.innerHTML = icons.map((app,i) => {
-      const encodedId = encodeURIComponent(app.id);
-      return `
-      <div class="desk-icon" ondblclick="ORBIT.openApp(decodeURIComponent('${encodedId}'))">
-        <div class="desk-icon-img" style="background:${colors[i % colors.length]};border:1px solid ${colors[i % colors.length].replace('0.15','0.4').replace('0.12','0.35')};overflow:hidden">${ORBIT._iconMarkup(ORBIT.apps[app.id] || {})}</div>
-        <div class="desk-icon-label">${app.label || app.id}</div>
-      </div>`;
-    }).join('');
-  }
-};
+  const desktop = document.getElementById('desktop');
+  const icons = [
+    { id:'browser', label:'ORBIT Browser' },
+    { id:'appstore', label:'App Store' },
+    { id:'chat', label:'NOVA AI' },
+    { id:'notes', label:'Notes' },
+    { id:'files', label:'Files' },
+    { id:'terminal', label:'Terminal' },
+    { id:'snake', label:'Snake' },
+    { id:'docs', label:'Arch Docs' },
+    { id:'settings', label:'Settings' },
+    ...Object.keys(this.apps)
+      .filter(id => this.apps[id]?.installed)
+      .map(id => ({ id, label: this.apps[id].title })),
+  ];
+  const colors = ['rgba(0,200,255,0.15)','rgba(139,92,246,0.15)','rgba(16,185,129,0.15)',
+                  'rgba(245,158,11,0.15)','rgba(236,72,153,0.15)','rgba(0,200,255,0.12)',
+                  'rgba(139,92,246,0.12)','rgba(16,185,129,0.12)','rgba(245,158,11,0.12)'];
+  desktop.innerHTML = icons.map((app,i) => {
+    const encodedId = encodeURIComponent(app.id);
+    return `
+    <div class="desk-icon" ondblclick="ORBIT.openApp(decodeURIComponent('${encodedId}'))">
+      <div class="desk-icon-img" style="background:${colors[i % colors.length]};border:1px solid ${colors[i % colors.length].replace('0.15','0.4').replace('0.12','0.35')};overflow:hidden">${ORBIT._iconMarkup(ORBIT.apps[app.id] || {})}</div>
+      <div class="desk-icon-label">${app.label || app.id}</div>
+    </div>`;
+  }).join('');
+}
 
 // === CLOCK ===
 function updateClock() {
