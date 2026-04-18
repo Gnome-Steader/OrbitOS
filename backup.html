@@ -1,0 +1,2167 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORBIT OS v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07071a;--bg2:#0c0c25;--surface:rgba(10,10,32,0.88);--surface2:rgba(16,16,45,0.92);
+  --surface3:rgba(22,22,58,0.95);--border:rgba(0,200,255,0.18);--border2:rgba(139,92,246,0.22);
+  --blue:#00c8ff;--purple:#8b5cf6;--pink:#ec4899;--green:#10b981;--amber:#f59e0b;
+  --text:#e2e4f0;--text-dim:#8b8fba;--text-muted:#4a4d6b;
+  --win-h:36px;--dock-h:68px;--radius:14px;--radius-sm:8px;
+  --glow-b:0 0 24px rgba(0,200,255,0.35);--glow-p:0 0 24px rgba(139,92,246,0.35);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'Rajdhani',sans-serif;color:var(--text);user-select:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.4);border-radius:2px}
+
+/* === NEBULA BACKGROUND === */
+#nebula-bg{position:fixed;inset:0;overflow:hidden;z-index:0;background:radial-gradient(ellipse 80% 60% at 20% 30%,rgba(30,10,80,0.6) 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 80% 70%,rgba(0,40,80,0.5) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 50% 50%,rgba(15,5,50,0.4) 0%,transparent 70%),#07071a}
+#nebula-cloud1{position:absolute;width:600px;height:400px;border-radius:50%;background:radial-gradient(ellipse,rgba(60,10,120,0.25) 0%,transparent 70%);top:-100px;left:-100px;animation:driftA 30s ease-in-out infinite alternate}
+#nebula-cloud2{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,60,120,0.2) 0%,transparent 70%);bottom:-150px;right:-100px;animation:driftB 25s ease-in-out infinite alternate}
+#nebula-cloud3{position:absolute;width:400px;height:300px;border-radius:50%;background:radial-gradient(ellipse,rgba(80,0,100,0.18) 0%,transparent 70%);top:30%;left:40%;animation:driftC 35s ease-in-out infinite alternate}
+#stars-canvas{position:fixed;inset:0;z-index:1;pointer-events:none}
+@keyframes driftA{from{transform:translate(0,0) scale(1)}to{transform:translate(60px,40px) scale(1.15)}}
+@keyframes driftB{from{transform:translate(0,0) scale(1)}to{transform:translate(-50px,-30px) scale(1.2)}}
+@keyframes driftC{from{transform:translate(0,0) scale(1) rotate(0deg)}to{transform:translate(30px,-50px) scale(1.1) rotate(10deg)}}
+
+/* === BOOT SCREEN === */
+#boot{position:fixed;inset:0;z-index:99999;background:#030310;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;transition:opacity 0.8s}
+#boot.hidden{opacity:0;pointer-events:none}
+#boot-logo{width:80px;height:80px;border-radius:20px;animation:bootPulse 2s ease-in-out infinite}
+#boot-logo img{width:100%;height:100%;border-radius:20px;object-fit:cover}
+#boot-name{font-family:'Orbitron',monospace;font-size:36px;font-weight:900;letter-spacing:8px;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:fadeInUp 0.8s ease forwards}
+#boot-sub{font-size:13px;letter-spacing:4px;color:var(--text-dim);font-weight:500;text-transform:uppercase;animation:fadeInUp 0.8s 0.2s ease both}
+#boot-bar-wrap{width:240px;height:2px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden}
+#boot-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:2px;transition:width 0.1s linear;box-shadow:var(--glow-b)}
+#boot-status{font-size:11px;color:var(--text-muted);letter-spacing:2px;min-height:16px;font-family:'JetBrains Mono',monospace}
+@keyframes bootPulse{0%,100%{box-shadow:0 0 30px rgba(0,200,255,0.4)}50%{box-shadow:0 0 60px rgba(139,92,246,0.6)}}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* === DESKTOP === */
+#os{position:fixed;inset:0;z-index:2;display:none}
+#desktop{position:absolute;inset:0;bottom:var(--dock-h);padding:20px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:8px}
+.desk-icon{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px;border-radius:12px;cursor:pointer;width:76px;transition:background 0.15s;position:relative}
+.desk-icon:hover{background:rgba(0,200,255,0.1)}
+.desk-icon:active .desk-icon-img{transform:scale(0.92)}
+.desk-icon-img{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;transition:transform 0.15s,box-shadow 0.15s}
+.desk-icon:hover .desk-icon-img{box-shadow:0 0 20px rgba(0,200,255,0.4);transform:translateY(-2px)}
+.desk-icon-label{font-size:11px;color:var(--text);text-align:center;text-shadow:0 1px 4px rgba(0,0,0,0.8);line-height:1.2;max-width:72px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.desk-icon.selected{background:rgba(139,92,246,0.2)}
+
+/* === CONTEXT MENU === */
+#ctx-menu{position:fixed;z-index:90000;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:160px;box-shadow:0 16px 48px rgba(0,0,0,0.6);display:none}
+.ctx-item{padding:8px 14px;border-radius:6px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background 0.1s}
+.ctx-item:hover{background:rgba(0,200,255,0.12);color:var(--blue)}
+.ctx-sep{height:1px;background:var(--border);margin:4px 2px}
+
+/* === DOCK === */
+#dock{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;align-items:center;gap:6px;background:rgba(8,8,28,0.78);backdrop-filter:blur(32px) saturate(1.5);border:1px solid rgba(0,200,255,0.14);border-radius:22px;padding:8px 16px;box-shadow:0 12px 48px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.05)}
+.dock-sep{width:1px;height:36px;background:var(--border);margin:0 4px}
+.dock-item{position:relative;width:50px;height:50px;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;border-radius:14px;transition:transform 0.2s cubic-bezier(0.34,1.56,0.64,1);flex-shrink:0}
+.dock-item:hover{transform:scale(1.32) translateY(-8px)}
+.dock-item.active::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--blue);box-shadow:var(--glow-b)}
+.dock-tooltip{position:absolute;bottom:calc(100% + 12px);left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.15s;color:var(--text-dim)}
+.dock-item:hover .dock-tooltip{opacity:1}
+#dock-clock{font-family:'Orbitron',monospace;font-size:12px;font-weight:500;color:var(--blue);letter-spacing:2px;padding:0 8px;text-shadow:var(--glow-b);line-height:1.3;text-align:center}
+#dock-date{font-size:9px;color:var(--text-muted);letter-spacing:1px;text-align:center}
+
+/* === WINDOWS === */
+#windows-layer{position:absolute;inset:0}
+.window{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,0.7),0 0 0 0.5px rgba(255,255,255,0.04) inset;transition:box-shadow 0.2s;display:flex;flex-direction:column;min-width:300px;min-height:200px;opacity:0;transform:scale(0.9);transition:opacity 0.25s,transform 0.25s cubic-bezier(0.34,1.56,0.64,1)}
+.window.open{opacity:1;transform:scale(1)}
+.window.focused{border-color:rgba(0,200,255,0.3);box-shadow:0 24px 80px rgba(0,0,0,0.7),var(--glow-b),0 0 0 0.5px rgba(255,255,255,0.04) inset}
+.window.minimized{opacity:0;transform:scale(0.7) translateY(80px);pointer-events:none}
+.window.maximized{border-radius:0!important;border:none!important}
+.win-titlebar{height:var(--win-h);background:var(--surface2);display:flex;align-items:center;padding:0 12px;gap:8px;cursor:grab;flex-shrink:0;border-bottom:1px solid var(--border)}
+.win-titlebar:active{cursor:grabbing}
+.win-controls{display:flex;gap:6px;margin-right:4px}
+.win-btn{width:14px;height:14px;border-radius:50%;border:none;cursor:pointer;flex-shrink:0;transition:filter 0.15s,transform 0.1s}
+.win-btn:active{transform:scale(0.85)}
+.win-btn.close{background:#ff5f57}
+.win-btn.minimize{background:#febc2e}
+.win-btn.maximize{background:#28c840}
+.win-btn:hover{filter:brightness(1.3)}
+.win-icon{font-size:16px;flex-shrink:0}
+.win-title{font-size:13px;font-weight:600;letter-spacing:0.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-dim)}
+.win-content{flex:1;overflow:hidden;position:relative}
+.win-resize{position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:nwse-resize;z-index:1;opacity:0.3}
+.win-resize:hover{opacity:0.8}
+.win-resize::after{content:'';position:absolute;bottom:4px;right:4px;width:8px;height:8px;border-right:2px solid var(--blue);border-bottom:2px solid var(--blue);border-radius:0 0 2px 0}
+
+/* === BROWSER APP === */
+.browser{display:flex;flex-direction:column;height:100%;background:var(--bg2)}
+.browser-tabbar{display:flex;align-items:center;background:var(--surface2);height:36px;padding:4px 4px 0;gap:2px;overflow-x:auto;overflow-y:hidden;flex-shrink:0;border-bottom:1px solid var(--border)}
+.browser-tabbar::-webkit-scrollbar{height:2px}
+.b-tab{display:flex;align-items:center;gap:6px;padding:0 10px;height:28px;border-radius:8px 8px 0 0;font-size:12px;cursor:pointer;white-space:nowrap;max-width:160px;min-width:80px;background:transparent;transition:background 0.15s;flex-shrink:0;position:relative;color:var(--text-dim)}
+.b-tab.active{background:var(--bg2);color:var(--text)}
+.b-tab:hover:not(.active){background:rgba(255,255,255,0.04)}
+.b-tab-title{flex:1;overflow:hidden;text-overflow:ellipsis}
+.b-tab-close{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;transition:background 0.1s;color:var(--text-dim)}
+.b-tab-close:hover{background:rgba(255,95,87,0.3);color:#ff5f57}
+.b-tab-new{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;cursor:pointer;font-size:16px;color:var(--text-dim);flex-shrink:0;transition:background 0.15s,color 0.15s}
+.b-tab-new:hover{background:rgba(0,200,255,0.12);color:var(--blue)}
+.browser-nav{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--surface2);flex-shrink:0;border-bottom:1px solid var(--border)}
+.b-nav-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.1s,color 0.1s;color:var(--text-dim);font-size:13px;flex-shrink:0}
+.b-nav-btn:hover{background:rgba(0,200,255,0.12);color:var(--blue)}
+.b-nav-btn.disabled{opacity:0.3;pointer-events:none}
+.b-urlbar{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:0 14px;height:28px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+.b-urlbar:focus{border-color:var(--blue);box-shadow:var(--glow-b)}
+.b-urlbar.incognito{border-color:rgba(139,92,246,0.4);box-shadow:var(--glow-p)}
+.b-extras{display:flex;gap:4px;align-items:center}
+.b-extra-btn{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--text-dim);transition:background 0.1s,color 0.1s}
+.b-extra-btn:hover{background:rgba(139,92,246,0.15);color:var(--purple)}
+.browser-main{flex:1;overflow:hidden;position:relative}
+.b-frame-wrap{position:absolute;inset:0}
+.b-frame{width:100%;height:100%;border:none;background:#fff}
+.b-home{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:var(--bg2)}
+.b-home-logo{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:4px}
+.b-search{display:flex;gap:8px;align-items:center;width:100%;max-width:500px}
+.b-search-bar{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:24px;padding:0 20px;height:44px;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s;font-family:'Rajdhani',sans-serif}
+.b-search-bar:focus{border-color:var(--blue);box-shadow:var(--glow-b)}
+.b-search-btn{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:transform 0.1s;box-shadow:var(--glow-b)}
+.b-search-btn:hover{transform:scale(1.05)}
+.b-bookmarks-bar{display:flex;gap:4px;padding:0 10px 6px;flex-wrap:nowrap;overflow-x:auto;flex-shrink:0;border-bottom:1px solid rgba(0,200,255,0.08)}
+.b-bookmark{display:flex;align-items:center;gap:5px;padding:2px 10px;border-radius:6px;font-size:11px;cursor:pointer;white-space:nowrap;color:var(--text-dim);transition:background 0.1s,color 0.1s}
+.b-bookmark:hover{background:rgba(0,200,255,0.1);color:var(--blue)}
+.b-quick-links{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.b-quick-link{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px;border-radius:12px;cursor:pointer;transition:background 0.15s;width:72px}
+.b-quick-link:hover{background:rgba(0,200,255,0.08)}
+.b-quick-link-ico{width:40px;height:40px;border-radius:10px;font-size:20px;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border)}
+.b-quick-link span{font-size:11px;color:var(--text-dim)}
+.b-status{position:absolute;bottom:6px;left:10px;font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity 0.2s}
+.b-status.show{opacity:1}
+.b-loading{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--purple));z-index:10;transform-origin:left;animation:loadSweep 1.5s ease-in-out infinite;display:none}
+.b-loading.show{display:block}
+@keyframes loadSweep{0%{transform:scaleX(0);opacity:1}70%{transform:scaleX(0.7);opacity:1}100%{transform:scaleX(1);opacity:0}}
+.b-bkm-panel{position:absolute;right:0;top:0;bottom:0;width:260px;background:var(--surface2);border-left:1px solid var(--border);transform:translateX(100%);transition:transform 0.3s ease;z-index:5;display:flex;flex-direction:column}
+.b-bkm-panel.open{transform:translateX(0)}
+.b-bkm-header{padding:14px;border-bottom:1px solid var(--border);font-family:'Orbitron',monospace;font-size:12px;font-weight:600;color:var(--blue);letter-spacing:1px}
+.b-bkm-list{flex:1;overflow-y:auto;padding:8px}
+.b-bkm-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.1s;font-size:12px}
+.b-bkm-item:hover{background:rgba(0,200,255,0.08)}
+.b-bkm-item span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b-bkm-del{font-size:11px;color:var(--text-muted);flex-shrink:0;padding:2px 6px;border-radius:4px}
+.b-bkm-del:hover{color:#ff5f57;background:rgba(255,95,87,0.1)}
+.b-error{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--bg2);padding:40px}
+.b-error-icon{font-size:48px}
+.b-error h2{font-family:'Orbitron',monospace;font-size:18px;color:var(--text)}
+.b-error p{color:var(--text-dim);font-size:13px;text-align:center;max-width:400px;line-height:1.6}
+.b-scramjet-info{background:rgba(0,200,255,0.06);border:1px solid rgba(0,200,255,0.15);border-radius:8px;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);max-width:480px;word-break:break-all;line-height:1.5}
+.b-scramjet-info strong{color:var(--blue);display:block;margin-bottom:4px}
+
+/* === NOTES APP === */
+.notes{display:flex;height:100%;background:var(--bg2)}
+.notes-sidebar{width:180px;background:var(--surface2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.notes-sidebar-header{padding:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.notes-sidebar-title{font-family:'Orbitron',monospace;font-size:10px;font-weight:600;color:var(--blue);letter-spacing:2px}
+.notes-add-btn{width:22px;height:22px;border-radius:6px;background:rgba(0,200,255,0.12);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:var(--blue);transition:background 0.1s}
+.notes-add-btn:hover{background:rgba(0,200,255,0.25)}
+.notes-list{flex:1;overflow-y:auto;padding:6px}
+.note-item{padding:8px 10px;border-radius:8px;cursor:pointer;transition:background 0.1s;border:1px solid transparent}
+.note-item:hover{background:rgba(0,200,255,0.06)}
+.note-item.active{background:rgba(0,200,255,0.1);border-color:rgba(0,200,255,0.2)}
+.note-item-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-item-preview{font-size:10px;color:var(--text-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-item-date{font-size:9px;color:var(--text-muted);margin-top:3px}
+.notes-editor{flex:1;display:flex;flex-direction:column}
+.notes-editor-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.notes-title-input{flex:1;background:transparent;border:none;font-family:'Orbitron',monospace;font-size:13px;font-weight:600;color:var(--text);outline:none}
+.notes-del-btn{font-size:12px;color:var(--text-muted);cursor:pointer;padding:4px 8px;border-radius:5px}
+.notes-del-btn:hover{color:#ff5f57;background:rgba(255,95,87,0.1)}
+.notes-body{flex:1;padding:16px;background:transparent;border:none;resize:none;font-family:'Rajdhani',sans-serif;font-size:14px;color:var(--text);line-height:1.7;outline:none}
+
+/* === CHAT APP === */
+.chat{display:flex;flex-direction:column;height:100%;background:var(--bg2)}
+.chat-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:var(--surface2)}
+.chat-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:var(--glow-p)}
+.chat-title{font-family:'Orbitron',monospace;font-size:13px;font-weight:600;color:var(--blue);letter-spacing:1px}
+.chat-status{font-size:11px;color:var(--green);display:flex;align-items:center;gap:4px}
+.chat-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-msg{display:flex;gap:10px;align-items:flex-start;animation:msgIn 0.3s ease}
+.chat-msg.user{flex-direction:row-reverse}
+.chat-msg-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+.chat-msg.user .chat-msg-avatar{background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.3)}
+.chat-msg.ai .chat-msg-avatar{background:rgba(0,200,255,0.15);border:1px solid rgba(0,200,255,0.25)}
+.chat-bubble{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.55;max-width:75%;word-wrap:break-word}
+.chat-msg.user .chat-bubble{background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.25);color:var(--text);border-radius:12px 4px 12px 12px}
+.chat-msg.ai .chat-bubble{background:rgba(10,10,35,0.7);border:1px solid rgba(0,200,255,0.15);color:var(--text);border-radius:4px 12px 12px 12px}
+.chat-typing{display:flex;gap:4px;align-items:center;padding:10px 14px}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--text-dim);animation:typeDot 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:0.2s}
+.typing-dot:nth-child(3){animation-delay:0.4s}
+@keyframes typeDot{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-5px);opacity:1}}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.chat-input-area{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;background:var(--surface2)}
+.chat-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--text);outline:none;resize:none;height:36px;max-height:120px;transition:border-color 0.2s}
+.chat-input:focus{border-color:var(--blue);box-shadow:var(--glow-b)}
+.chat-send{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:transform 0.1s;box-shadow:var(--glow-b)}
+.chat-send:hover{transform:scale(1.1)}
+.chat-clear{width:28px;height:28px;border-radius:8px;font-size:12px;color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.1s}
+.chat-clear:hover{background:rgba(255,95,87,0.15);color:#ff5f57}
+
+/* === FILE MANAGER === */
+.fm{display:flex;flex-direction:column;height:100%;background:var(--bg2)}
+.fm-nav{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2);flex-shrink:0}
+.fm-nav-btn{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--text-dim);transition:background 0.1s}
+.fm-nav-btn:hover{background:rgba(0,200,255,0.1);color:var(--blue)}
+.fm-path{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:0 10px;height:26px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim)}
+.fm-actions{display:flex;gap:4px}
+.fm-action-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:11px;color:var(--text-dim);transition:background 0.1s;font-family:'Rajdhani',sans-serif}
+.fm-action-btn:hover{background:rgba(0,200,255,0.1);color:var(--blue)}
+.fm-body{display:flex;flex:1;overflow:hidden}
+.fm-sidebar{width:150px;background:var(--surface2);border-right:1px solid var(--border);padding:10px 8px;flex-shrink:0;overflow-y:auto}
+.fm-sidebar-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--text-dim);transition:background 0.1s}
+.fm-sidebar-item:hover,.fm-sidebar-item.active{background:rgba(0,200,255,0.08);color:var(--text)}
+.fm-sidebar-sep{font-size:9px;letter-spacing:2px;color:var(--text-muted);padding:10px 10px 4px;font-weight:600;text-transform:uppercase}
+.fm-grid{flex:1;padding:12px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;align-content:start}
+.fm-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border-radius:10px;cursor:pointer;transition:background 0.15s;border:1px solid transparent}
+.fm-item:hover{background:rgba(0,200,255,0.07);border-color:rgba(0,200,255,0.12)}
+.fm-item.selected{background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.25)}
+.fm-item-icon{font-size:30px;line-height:1}
+.fm-item-name{font-size:10px;text-align:center;word-break:break-word;line-height:1.3;max-width:76px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.fm-status-bar{height:24px;background:var(--surface2);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;font-size:10px;color:var(--text-muted);gap:12px;flex-shrink:0}
+
+/* === SETTINGS === */
+.settings{display:flex;height:100%;background:var(--bg2)}
+.settings-nav{width:160px;background:var(--surface2);border-right:1px solid var(--border);padding:12px 8px;overflow-y:auto;flex-shrink:0}
+.settings-nav-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;cursor:pointer;font-size:12px;color:var(--text-dim);transition:background 0.1s;margin-bottom:2px}
+.settings-nav-item:hover,.settings-nav-item.active{background:rgba(0,200,255,0.08);color:var(--text)}
+.settings-content{flex:1;padding:20px;overflow-y:auto}
+.settings-section{margin-bottom:28px}
+.settings-section-title{font-family:'Orbitron',monospace;font-size:10px;font-weight:600;color:var(--blue);letter-spacing:2px;margin-bottom:14px;text-transform:uppercase}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);margin-bottom:6px}
+.settings-row-label{font-size:13px;font-weight:500}
+.settings-row-desc{font-size:11px;color:var(--text-dim);margin-top:2px}
+.settings-toggle{width:40px;height:22px;border-radius:11px;background:rgba(255,255,255,0.1);position:relative;cursor:pointer;transition:background 0.2s}
+.settings-toggle.on{background:linear-gradient(90deg,var(--blue),var(--purple))}
+.settings-toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+.settings-toggle.on::after{transform:translateX(18px)}
+.settings-select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--text);font-family:'Rajdhani',sans-serif;cursor:pointer}
+.settings-color-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.settings-color-swatch{width:32px;height:32px;border-radius:8px;cursor:pointer;transition:transform 0.15s;border:2px solid transparent}
+.settings-color-swatch:hover{transform:scale(1.15)}
+.settings-color-swatch.active{border-color:white}
+.settings-slider{width:120px;-webkit-appearance:none;height:4px;border-radius:2px;background:rgba(255,255,255,0.1);outline:none}
+.settings-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--blue);cursor:pointer;box-shadow:var(--glow-b)}
+.about-orbit{text-align:center;padding:20px}
+.about-orbit-logo{font-family:'Orbitron',monospace;font-size:32px;font-weight:900;background:linear-gradient(135deg,var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.about-orbit-ver{font-size:12px;color:var(--text-dim);letter-spacing:2px}
+
+/* === SNAKE GAME === */
+.snake{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;background:var(--bg2);position:relative}
+.snake-score{font-family:'Orbitron',monospace;font-size:14px;color:var(--blue);letter-spacing:2px}
+.snake-canvas{border:1px solid rgba(0,200,255,0.25);border-radius:8px;box-shadow:var(--glow-b)}
+.snake-controls{font-size:11px;color:var(--text-muted);letter-spacing:1px}
+.snake-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(7,7,26,0.85);backdrop-filter:blur(8px)}
+.snake-overlay h2{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:var(--blue);letter-spacing:2px}
+.snake-overlay p{color:var(--text-dim);font-size:13px}
+.snake-btn{background:linear-gradient(135deg,var(--blue),var(--purple));border:none;border-radius:10px;padding:10px 24px;font-family:'Orbitron',monospace;font-size:12px;font-weight:600;color:#fff;cursor:pointer;letter-spacing:1px;transition:transform 0.1s;box-shadow:var(--glow-b)}
+.snake-btn:hover{transform:scale(1.05)}
+
+/* === TERMINAL === */
+.terminal{display:flex;flex-direction:column;height:100%;background:#03030f;padding:0}
+.term-output{flex:1;overflow-y:auto;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:#00ff88}
+.term-input-row{display:flex;align-items:center;gap:6px;padding:8px 14px;border-top:1px solid rgba(0,255,136,0.15)}
+.term-prompt{font-family:'JetBrains Mono',monospace;font-size:12px;color:#00ff88;white-space:nowrap}
+.term-input{flex:1;background:transparent;border:none;outline:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:#00ff88;caret-color:#00ff88}
+
+/* === ARCH DOCS === */
+.arch-docs{display:flex;height:100%;background:var(--bg2)}
+.arch-sidebar{width:200px;background:var(--surface2);border-right:1px solid var(--border);padding:10px;overflow-y:auto;flex-shrink:0}
+.arch-nav-item{padding:8px 12px;border-radius:8px;font-size:12px;cursor:pointer;color:var(--text-dim);transition:background 0.1s;margin-bottom:2px}
+.arch-nav-item:hover,.arch-nav-item.active{background:rgba(0,200,255,0.08);color:var(--blue)}
+.arch-content{flex:1;overflow-y:auto;padding:20px}
+.arch-h1{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--blue);letter-spacing:1px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.arch-h2{font-family:'Orbitron',monospace;font-size:12px;font-weight:600;color:var(--purple);letter-spacing:1px;margin:16px 0 10px;text-transform:uppercase}
+.arch-p{font-size:13px;line-height:1.7;color:var(--text-dim);margin-bottom:12px}
+.arch-code{background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#00ff88;overflow-x:auto;margin-bottom:12px;line-height:1.7}
+.arch-tag{display:inline-block;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.2);border-radius:5px;padding:2px 8px;font-size:10px;color:var(--blue);font-family:'JetBrains Mono',monospace;margin:2px}
+.arch-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+.arch-table th{text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);color:var(--blue);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.arch-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text-dim)}
+.arch-table tr:hover td{background:rgba(0,200,255,0.04)}
+
+/* === MISC ANIMATIONS === */
+@keyframes glowPulse{0%,100%{box-shadow:var(--glow-b)}50%{box-shadow:0 0 40px rgba(0,200,255,0.6)}}
+.glow-pulse{animation:glowPulse 3s ease-in-out infinite}
+</style>
+</head>
+<body>
+<!-- BACKGROUND -->
+<div id="nebula-bg">
+  <div id="nebula-cloud1"></div>
+  <div id="nebula-cloud2"></div>
+  <div id="nebula-cloud3"></div>
+</div>
+<canvas id="stars-canvas"></canvas>
+
+<!-- BOOT SCREEN -->
+<div id="boot">
+  <div id="boot-logo"><img src="https://copilot.microsoft.com/th/id/BCO.ea4f5d33-1f9c-41b2-b4ce-e96ca192885d.png" alt="ORBIT" onerror="this.style.display='none';this.parentNode.innerHTML='🌌'"></div>
+  <div id="boot-name">ORBIT</div>
+  <div id="boot-sub">Browser Operating System v1.0</div>
+  <div id="boot-bar-wrap"><div id="boot-bar"></div></div>
+  <div id="boot-status">Initializing kernel...</div>
+</div>
+
+<!-- OS ENVIRONMENT -->
+<div id="os">
+  <div id="desktop" oncontextmenu="CTX.show(event)">
+    <!-- Icons injected by JS -->
+  </div>
+  <div id="windows-layer"></div>
+  <div id="dock">
+    <div class="dock-item" onclick="ORBIT.openApp('browser')" id="dock-browser">
+      🌐
+      <div class="dock-tooltip">ORBIT Browser</div>
+    </div>
+    <div class="dock-item" onclick="ORBIT.openApp('chat')" id="dock-chat">
+      💬
+      <div class="dock-tooltip">NOVA AI</div>
+    </div>
+    <div class="dock-item" onclick="ORBIT.openApp('notes')" id="dock-notes">
+      📝
+      <div class="dock-tooltip">Notes</div>
+    </div>
+    <div class="dock-item" onclick="ORBIT.openApp('files')" id="dock-files">
+      🗂️
+      <div class="dock-tooltip">Files</div>
+    </div>
+    <div class="dock-item" onclick="ORBIT.openApp('terminal')" id="dock-terminal">
+      ⌨️
+      <div class="dock-tooltip">Terminal</div>
+    </div>
+    <div class="dock-item" onclick="ORBIT.openApp('snake')" id="dock-snake">
+      🐍
+      <div class="dock-tooltip">Snake</div>
+    </div>
+    <div class="dock-sep"></div>
+    <div class="dock-item" onclick="ORBIT.openApp('settings')" id="dock-settings">
+      ⚙️
+      <div class="dock-tooltip">Settings</div>
+    </div>
+    <div class="dock-item" onclick="ORBIT.openApp('docs')" id="dock-docs">
+      📡
+      <div class="dock-tooltip">Architecture Docs</div>
+    </div>
+    <div class="dock-sep"></div>
+    <div>
+      <div id="dock-clock">--:--</div>
+      <div id="dock-date">ORBIT OS</div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="ORBIT.openApp('browser');CTX.hide()">🌐 Open Browser</div>
+  <div class="ctx-item" onclick="ORBIT.openApp('chat');CTX.hide()">💬 Open NOVA AI</div>
+  <div class="ctx-item" onclick="ORBIT.openApp('notes');CTX.hide()">📝 New Note</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="ORBIT.openApp('settings');CTX.hide()">⚙️ Settings</div>
+  <div class="ctx-item" onclick="ORBIT.openApp('docs');CTX.hide()">📡 Architecture Docs</div>
+</div>
+
+<script>
+// ==========================================
+// ORBIT OS — CORE SYSTEMS
+// ==========================================
+
+// === SCRAMJET URL UTILITIES ===
+const Scramjet = {
+  PREFIX: '__orbit_proxy__/',
+  BARE_SERVER: '/bare/',
+  SW_PATH: '/scramjet/worker/scramjet.worker.js',
+
+  encode(url) {
+    try {
+      const bytes = new TextEncoder().encode(url);
+      let binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+    } catch { return btoa(url); }
+  },
+
+  decode(enc) {
+    try {
+      const padded = enc.replace(/-/g,'+').replace(/_/g,'/') + '=='.slice(0,(4-enc.length%4)%4);
+      const binary = atob(padded);
+      const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    } catch { return enc; }
+  },
+
+  rewrite(url) {
+    if (!url) return '';
+    if (url.startsWith('orbit://')) return url;
+    if (!url.match(/^https?:\/\//i)) url = 'https://' + url;
+    return this.PREFIX + this.encode(url);
+  },
+
+  extract(proxied) {
+    if (proxied.startsWith(this.PREFIX)) {
+      return this.decode(proxied.slice(this.PREFIX.length));
+    }
+    return proxied;
+  },
+
+  isProxied(url) { return url && url.startsWith(this.PREFIX); },
+
+  getDisplayUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('orbit://')) return url;
+    if (this.isProxied(url)) return this.extract(url.slice(this.PREFIX.length));
+    return url;
+  },
+
+  getBareConfig() {
+    return { server: this.BARE_SERVER, version: 3 };
+  },
+
+  getServiceWorkerConfig() {
+    return {
+      path: this.SW_PATH,
+      prefix: '/' + this.PREFIX,
+      codec: 'base64url',
+      bareServer: this.BARE_SERVER
+    };
+  }
+};
+
+// === STAR FIELD ===
+class StarField {
+  constructor() {
+    this.canvas = document.getElementById('stars-canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.stars = [];
+    this.resize();
+    this.init();
+    window.addEventListener('resize', () => { this.resize(); this.init(); });
+    this.animate();
+  }
+
+  resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+  }
+
+  init() {
+    this.stars = [];
+    const count = Math.floor((this.canvas.width * this.canvas.height) / 3000);
+    for (let i = 0; i < count; i++) {
+      this.stars.push({
+        x: Math.random() * this.canvas.width,
+        y: Math.random() * this.canvas.height,
+        r: Math.random() * 1.4 + 0.2,
+        a: Math.random(),
+        speed: Math.random() * 0.008 + 0.002,
+        phase: Math.random() * Math.PI * 2,
+        color: Math.random() > 0.9 ? '#8b5cf6' : Math.random() > 0.8 ? '#00c8ff' : '#ffffff'
+      });
+    }
+  }
+
+  animate() {
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const t = Date.now() * 0.001;
+    this.stars.forEach(s => {
+      const alpha = s.a * (0.5 + 0.5 * Math.sin(t * s.speed * 10 + s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = s.color;
+      ctx.globalAlpha = alpha;
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(() => this.animate());
+  }
+}
+
+// === WINDOW MANAGER ===
+class WindowManager {
+  constructor() {
+    this.windows = {};
+    this.z = 100;
+    this.layer = document.getElementById('windows-layer');
+    this.dragging = null;
+    this.resizing = null;
+    document.addEventListener('mousemove', e => this._onMouseMove(e));
+    document.addEventListener('mouseup', () => this._onMouseUp());
+    document.addEventListener('touchmove', e => this._onMouseMove(e.touches[0]), {passive:false});
+    document.addEventListener('touchend', () => this._onMouseUp());
+  }
+
+  open({ id, title, icon='🔲', html, width=820, height=540, x, y }) {
+    if (this.windows[id]) {
+      this.focus(id);
+      const w = this.windows[id];
+      if (w.minimized) {
+        w.el.classList.remove('minimized');
+        w.minimized = false;
+      }
+      return;
+    }
+    x = x ?? Math.max(40, (window.innerWidth - width) / 2 + (Object.keys(this.windows).length * 24 % 80));
+    y = y ?? Math.max(40, (window.innerHeight - height - 80) / 2 + (Object.keys(this.windows).length * 20 % 60));
+
+    const el = document.createElement('div');
+    el.className = 'window';
+    el.id = 'win_' + id;
+    el.style.cssText = `left:${x}px;top:${y}px;width:${width}px;height:${height}px;z-index:${this.z++}`;
+    el.innerHTML = `
+      <div class="win-titlebar" data-win="${id}">
+        <div class="win-controls">
+          <div class="win-btn close" onclick="WM.close('${id}')"></div>
+          <div class="win-btn minimize" onclick="WM.minimize('${id}')"></div>
+          <div class="win-btn maximize" onclick="WM.toggleMax('${id}')"></div>
+        </div>
+        <span class="win-icon">${icon}</span>
+        <span class="win-title">${title}</span>
+      </div>
+      <div class="win-content" id="wc_${id}">${html}</div>
+      <div class="win-resize" data-win="${id}"></div>
+    `;
+    this.layer.appendChild(el);
+
+    const data = { el, title, icon, minimized:false, maximized:false,
+      x, y, width, height, savedRect:null };
+    this.windows[id] = data;
+
+    this._bind(el, id);
+    this.focus(id);
+    requestAnimationFrame(() => el.classList.add('open'));
+    this._updateDock(id, true);
+    return el;
+  }
+
+  close(id) {
+    const w = this.windows[id];
+    if (!w) return;
+    w.el.classList.remove('open');
+    w.el.style.opacity = '0';
+    w.el.style.transform = 'scale(0.85)';
+    setTimeout(() => { w.el.remove(); delete this.windows[id]; }, 250);
+    this._updateDock(id, false);
+  }
+
+  minimize(id) {
+    const w = this.windows[id];
+    if (!w) return;
+    w.minimized = !w.minimized;
+    w.el.classList.toggle('minimized', w.minimized);
+  }
+
+  toggleMax(id) {
+    const w = this.windows[id];
+    if (!w) return;
+    if (!w.maximized) {
+      w.savedRect = { left: w.el.style.left, top: w.el.style.top, width: w.el.style.width, height: w.el.style.height };
+      w.el.style.left='0'; w.el.style.top='0';
+      w.el.style.width=window.innerWidth+'px'; w.el.style.height=(window.innerHeight-0)+'px';
+      w.el.classList.add('maximized');
+      w.maximized = true;
+    } else {
+      const r = w.savedRect;
+      w.el.style.left=r.left; w.el.style.top=r.top;
+      w.el.style.width=r.width; w.el.style.height=r.height;
+      w.el.classList.remove('maximized');
+      w.maximized = false;
+    }
+  }
+
+  focus(id) {
+    Object.values(this.windows).forEach(w => w.el.classList.remove('focused'));
+    const w = this.windows[id];
+    if (w) { w.el.style.zIndex = ++this.z; w.el.classList.add('focused'); }
+  }
+
+  _bind(el, id) {
+    const titlebar = el.querySelector('.win-titlebar');
+    const resizeHandle = el.querySelector('.win-resize');
+
+    const startDrag = (e) => {
+      const src = e.type.startsWith('touch') ? e.touches[0] : e;
+      if (src.target.classList.contains('win-btn')) return;
+      const w = this.windows[id];
+      if (w.maximized) return;
+      this.dragging = { id, startX: src.clientX, startY: src.clientY,
+        origLeft: parseInt(el.style.left), origTop: parseInt(el.style.top) };
+      this.focus(id);
+      e.preventDefault();
+    };
+    titlebar.addEventListener('mousedown', startDrag);
+    titlebar.addEventListener('touchstart', startDrag, {passive:false});
+
+    const startResize = (e) => {
+      const src = e.type.startsWith('touch') ? e.touches[0] : e;
+      const w = this.windows[id];
+      if (w.maximized) return;
+      this.resizing = { id, startX: src.clientX, startY: src.clientY,
+        origW: parseInt(el.style.width), origH: parseInt(el.style.height) };
+      this.focus(id);
+      e.preventDefault();
+    };
+    resizeHandle.addEventListener('mousedown', startResize);
+
+    el.addEventListener('mousedown', () => this.focus(id));
+  }
+
+  _onMouseMove(e) {
+    const src = e.touches ? e.touches[0] : e;
+    if (this.dragging) {
+      const d = this.dragging;
+      const w = this.windows[d.id];
+      if (!w) return;
+      const nx = d.origLeft + (src.clientX - d.startX);
+      const ny = Math.max(0, d.origTop + (src.clientY - d.startY));
+      w.el.style.left = nx + 'px';
+      w.el.style.top = ny + 'px';
+    }
+    if (this.resizing) {
+      const r = this.resizing;
+      const w = this.windows[r.id];
+      if (!w) return;
+      const nw = Math.max(300, r.origW + (src.clientX - r.startX));
+      const nh = Math.max(200, r.origH + (src.clientY - r.startY));
+      w.el.style.width = nw + 'px';
+      w.el.style.height = nh + 'px';
+    }
+  }
+
+  _onMouseUp() { this.dragging = null; this.resizing = null; }
+
+  _updateDock(id, open) {
+    const btn = document.getElementById('dock-' + id.split('_')[0]);
+    if (btn) btn.classList.toggle('active', open);
+  }
+}
+
+// === CONTEXT MENU ===
+const CTX = {
+  el: document.getElementById('ctx-menu'),
+  show(e) {
+    e.preventDefault();
+    this.el.style.display = 'block';
+    const x = Math.min(e.clientX, window.innerWidth - 180);
+    const y = Math.min(e.clientY, window.innerHeight - 200);
+    this.el.style.left = x + 'px';
+    this.el.style.top = y + 'px';
+    setTimeout(() => document.addEventListener('click', () => this.hide(), { once: true }), 10);
+  },
+  hide() { this.el.style.display = 'none'; }
+};
+
+// === BROWSER APP ===
+class OBITBrowser {
+  constructor(wcId) {
+    this.wc = document.getElementById(wcId);
+    this.tabs = [];
+    this.activeTabId = null;
+    this.nextTabId = 1;
+    this.bookmarks = JSON.parse(localStorage.getItem('orbit_bookmarks') || '[]');
+    this.incognito = false;
+    this._render();
+    this.newTab('orbit://home');
+  }
+
+  _render() {
+    this.wc.innerHTML = `
+      <div class="browser">
+        <div class="browser-tabbar" id="${this.wc.id}_tabs">
+          <div class="b-tab-new" onclick="BROWSERS['${this.wc.id}'].newTab()" title="New Tab">+</div>
+        </div>
+        <div class="browser-nav">
+          <div class="b-nav-btn" id="${this.wc.id}_back" onclick="BROWSERS['${this.wc.id}'].back()" title="Back">◀</div>
+          <div class="b-nav-btn" id="${this.wc.id}_fwd" onclick="BROWSERS['${this.wc.id}'].forward()" title="Forward">▶</div>
+          <div class="b-nav-btn" onclick="BROWSERS['${this.wc.id}'].reload()" title="Reload">↺</div>
+          <input class="b-urlbar" id="${this.wc.id}_url" placeholder="Search or enter URL... (proxied via Scramjet)"
+            onkeydown="if(event.key==='Enter')BROWSERS['${this.wc.id}'].navigateInput(this.value)"
+            onfocus="this.select()">
+          <div class="b-extras">
+            <div class="b-extra-btn" onclick="BROWSERS['${this.wc.id}'].toggleBookmark()" title="Bookmark">☆</div>
+            <div class="b-extra-btn" onclick="BROWSERS['${this.wc.id}'].toggleBookmarkPanel()" title="Bookmarks">📚</div>
+            <div class="b-extra-btn" onclick="BROWSERS['${this.wc.id}'].toggleIncognito()" id="${this.wc.id}_incog" title="Incognito">🕵</div>
+          </div>
+        </div>
+        <div class="b-bookmarks-bar" id="${this.wc.id}_bkmbar"></div>
+        <div class="browser-main" id="${this.wc.id}_main">
+          <div class="b-loading" id="${this.wc.id}_loader"></div>
+          <div id="${this.wc.id}_frames"></div>
+          <div class="b-bkm-panel" id="${this.wc.id}_bkmpanel">
+            <div class="b-bkm-header">BOOKMARKS</div>
+            <div class="b-bkm-list" id="${this.wc.id}_bkmlist"></div>
+          </div>
+        </div>
+        <div class="b-status" id="${this.wc.id}_status"></div>
+      </div>
+    `;
+    this._renderBookmarksBar();
+  }
+
+  newTab(url = 'orbit://home') {
+    const id = this.nextTabId++;
+    const tab = {
+      id, url, displayUrl: url,
+      title: url === 'orbit://home' ? 'New Tab' : url,
+      history: [url], historyIndex: 0,
+      loading: false, favicon: '🌐', el: null, frameEl: null
+    };
+    this.tabs.push(tab);
+    this._renderTab(tab);
+    this._createFrame(tab);
+    this.activateTab(id);
+    if (url !== 'orbit://home') this.navigate(url, id);
+    return tab;
+  }
+
+  _renderTab(tab) {
+    const tabbar = document.getElementById(this.wc.id + '_tabs');
+    const newBtn = tabbar.querySelector('.b-tab-new');
+    const el = document.createElement('div');
+    el.className = 'b-tab';
+    el.id = `${this.wc.id}_tab_${tab.id}`;
+    el.onclick = (e) => { if (!e.target.classList.contains('b-tab-close')) this.activateTab(tab.id); };
+    el.innerHTML = `
+      <span style="font-size:12px">${tab.favicon}</span>
+      <span class="b-tab-title">${tab.title.substring(0,20)}</span>
+      <span class="b-tab-close" onclick="BROWSERS['${this.wc.id}'].closeTab(${tab.id})">×</span>
+    `;
+    tabbar.insertBefore(el, newBtn);
+    tab.el = el;
+  }
+
+  _createFrame(tab) {
+    const frames = document.getElementById(this.wc.id + '_frames');
+    const wrap = document.createElement('div');
+    wrap.className = 'b-frame-wrap';
+    wrap.id = `${this.wc.id}_frame_${tab.id}`;
+    wrap.style.display = 'none';
+    wrap.innerHTML = this._homeHTML();
+    frames.appendChild(wrap);
+    tab.frameEl = wrap;
+  }
+
+  activateTab(id) {
+    this.tabs.forEach(t => {
+      if (t.el) t.el.classList.toggle('active', t.id === id);
+      if (t.frameEl) t.frameEl.style.display = t.id === id ? 'block' : 'none';
+    });
+    this.activeTabId = id;
+    this._updateNavBar();
+  }
+
+  closeTab(id) {
+    const idx = this.tabs.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    const tab = this.tabs[idx];
+    if (tab.el) tab.el.remove();
+    if (tab.frameEl) tab.frameEl.remove();
+    this.tabs.splice(idx, 1);
+    if (this.tabs.length === 0) this.newTab();
+    else if (this.activeTabId === id) {
+      this.activateTab(this.tabs[Math.min(idx, this.tabs.length - 1)].id);
+    }
+  }
+
+  get activeTab() { return this.tabs.find(t => t.id === this.activeTabId); }
+
+  navigateInput(raw) {
+    let url = raw.trim();
+    if (!url) return;
+    if (!url.startsWith('orbit://') && !url.match(/^https?:\/\//i) && !url.includes('.')) {
+      url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+    }
+    this.navigate(url);
+  }
+
+  navigate(url, tabId = this.activeTabId) {
+    const tab = this.tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    const proxied = Scramjet.rewrite(url);
+    const display = url;
+    tab.history = tab.history.slice(0, tab.historyIndex + 1);
+    tab.history.push(url);
+    tab.historyIndex = tab.history.length - 1;
+    tab.url = url;
+    tab.displayUrl = display;
+    this._loadFrame(tab, url, proxied);
+    this._updateNavBar();
+  }
+
+  back() {
+    const tab = this.activeTab;
+    if (!tab || tab.historyIndex <= 0) return;
+    tab.historyIndex--;
+    tab.url = tab.history[tab.historyIndex];
+    this._loadFrame(tab, tab.url, Scramjet.rewrite(tab.url));
+    this._updateNavBar();
+  }
+
+  forward() {
+    const tab = this.activeTab;
+    if (!tab || tab.historyIndex >= tab.history.length - 1) return;
+    tab.historyIndex++;
+    tab.url = tab.history[tab.historyIndex];
+    this._loadFrame(tab, tab.url, Scramjet.rewrite(tab.url));
+    this._updateNavBar();
+  }
+
+  reload() {
+    const tab = this.activeTab;
+    if (!tab) return;
+    this._loadFrame(tab, tab.url, Scramjet.rewrite(tab.url));
+  }
+
+  _loadFrame(tab, originalUrl, proxiedUrl) {
+    if (originalUrl === 'orbit://home') {
+      tab.frameEl.innerHTML = this._homeHTML();
+      tab.title = 'New Tab';
+      this._updateTab(tab);
+      this._updateUrlBar(originalUrl);
+      this._setLoading(false);
+      return;
+    }
+
+    // Show scramjet proxy info page
+    this._setLoading(true);
+    tab.frameEl.innerHTML = this._proxyInfoHTML(originalUrl, proxiedUrl);
+    tab.title = this._getDomain(originalUrl);
+    this._updateTab(tab);
+    this._updateUrlBar(originalUrl);
+
+    setTimeout(() => this._setLoading(false), 1200);
+  }
+
+  _homeHTML() {
+    const shortcuts = [
+      {icon:'🔍',name:'Google',url:'https://google.com'},
+      {icon:'📰',name:'News',url:'https://news.ycombinator.com'},
+      {icon:'🐙',name:'GitHub',url:'https://github.com'},
+      {icon:'▶️',name:'YouTube',url:'https://youtube.com'},
+      {icon:'🐦',name:'Twitter',url:'https://twitter.com'},
+      {icon:'🤖',name:'Claude',url:'https://claude.ai'},
+    ];
+    const shortcutsHtml = shortcuts.map(s =>
+      `<div class="b-quick-link" onclick="BROWSERS['${this.wc.id}'].navigate('${s.url}')">
+        <div class="b-quick-link-ico">${s.icon}</div>
+        <span>${s.name}</span>
+       </div>`).join('');
+    return `
+      <div class="b-home">
+        <div class="b-home-logo">ORBIT</div>
+        <div style="font-size:12px;color:var(--text-dim);letter-spacing:1px">Browser · Powered by Scramjet</div>
+        <div class="b-search">
+          <input class="b-search-bar" placeholder="Search the web or enter URL..."
+            onkeydown="if(event.key==='Enter')BROWSERS['${this.wc.id}'].navigateInput(this.value)">
+          <div class="b-search-btn" onclick="BROWSERS['${this.wc.id}'].navigateInput(this.previousElementSibling.value)">🔍</div>
+        </div>
+        <div class="b-quick-links">${shortcutsHtml}</div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text-muted);text-align:center;letter-spacing:1px">
+          🛡 ORBIT Browser v1.0 · Scramjet Proxy Engine · Bare Server Protocol v3
+        </div>
+      </div>
+    `;
+  }
+
+  _proxyInfoHTML(url, proxied) {
+    const domain = this._getDomain(url);
+    const isSecure = url.startsWith('https://');
+    return `
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--bg2);padding:32px;overflow-y:auto">
+        <div style="font-size:40px">${isSecure ? '🔒' : '🌐'}</div>
+        <div style="font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--blue)">${domain}</div>
+        <div style="font-size:12px;color:var(--text-dim);text-align:center;max-width:500px">
+          In production, this page loads through the <strong style="color:var(--blue)">Scramjet service worker</strong> 
+          connecting to your <strong style="color:var(--purple)">Bare server</strong>. 
+          Deploy the backend to enable live proxying.
+        </div>
+        <div class="b-scramjet-info">
+          <strong>📡 Original URL</strong>${url}
+          <strong style="margin-top:8px;display:block">🔀 Scramjet Proxied URL (encoded)</strong>${proxied}
+          <strong style="margin-top:8px;display:block">⚙️ Bare Server Endpoint</strong>${Scramjet.BARE_SERVER}
+          <strong style="margin-top:8px;display:block">🔧 Service Worker Path</strong>${Scramjet.SW_PATH}
+          <strong style="margin-top:8px;display:block">🔑 Codec</strong>base64url (URL-safe, no padding)
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+          <div onclick="BROWSERS['${this.wc.id}'].navigate('${url}')" 
+               style="padding:8px 20px;border-radius:20px;background:linear-gradient(135deg,var(--blue),var(--purple));cursor:pointer;font-size:12px;font-weight:600;box-shadow:var(--glow-b)">
+            ↗ Open Directly
+          </div>
+          <div onclick="BROWSERS['${this.wc.id}'].back()"
+               style="padding:8px 20px;border-radius:20px;border:1px solid var(--border);cursor:pointer;font-size:12px;color:var(--text-dim)">
+            ← Back
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text-muted);text-align:center;max-width:420px;line-height:1.6">
+          Deploy <span style="color:var(--blue)">@mercuryworkshop/bare-server-node</span> + 
+          register <span style="color:var(--purple)">scramjet-controller</span> service worker to enable live proxy
+        </div>
+      </div>
+    `;
+  }
+
+  _getDomain(url) {
+    try { return new URL(url).hostname; } catch { return url.substring(0,30); }
+  }
+
+  _updateNavBar() {
+    const tab = this.activeTab;
+    if (!tab) return;
+    const urlInput = document.getElementById(this.wc.id + '_url');
+    if (urlInput) urlInput.value = tab.url === 'orbit://home' ? '' : tab.url;
+    const back = document.getElementById(this.wc.id + '_back');
+    const fwd = document.getElementById(this.wc.id + '_fwd');
+    if (back) back.classList.toggle('disabled', tab.historyIndex <= 0);
+    if (fwd) fwd.classList.toggle('disabled', tab.historyIndex >= tab.history.length - 1);
+  }
+
+  _updateUrlBar(url) {
+    const el = document.getElementById(this.wc.id + '_url');
+    if (el) el.value = url === 'orbit://home' ? '' : url;
+  }
+
+  _updateTab(tab) {
+    if (!tab.el) return;
+    const title = tab.el.querySelector('.b-tab-title');
+    if (title) title.textContent = tab.title.substring(0, 18);
+  }
+
+  _setLoading(on) {
+    const loader = document.getElementById(this.wc.id + '_loader');
+    if (loader) loader.classList.toggle('show', on);
+  }
+
+  toggleBookmark() {
+    const tab = this.activeTab;
+    if (!tab || tab.url === 'orbit://home') return;
+    const idx = this.bookmarks.findIndex(b => b.url === tab.url);
+    if (idx >= 0) this.bookmarks.splice(idx, 1);
+    else this.bookmarks.push({ url: tab.url, title: tab.title, favicon: '🔖' });
+    localStorage.setItem('orbit_bookmarks', JSON.stringify(this.bookmarks));
+    this._renderBookmarksBar();
+    this._renderBookmarksList();
+  }
+
+  toggleBookmarkPanel() {
+    const panel = document.getElementById(this.wc.id + '_bkmpanel');
+    if (panel) { panel.classList.toggle('open'); this._renderBookmarksList(); }
+  }
+
+  _renderBookmarksBar() {
+    const bar = document.getElementById(this.wc.id + '_bkmbar');
+    if (!bar) return;
+    bar.innerHTML = this.bookmarks.slice(0, 8).map(b =>
+      `<div class="b-bookmark" onclick="BROWSERS['${this.wc.id}'].navigate('${b.url}')" 
+            onmouseover="BROWSERS['${this.wc.id}']._showStatus('${b.url}')"
+            onmouseout="BROWSERS['${this.wc.id}']._hideStatus()">
+         ${b.favicon} ${b.title.substring(0,20)}
+       </div>`).join('');
+  }
+
+  _renderBookmarksList() {
+    const list = document.getElementById(this.wc.id + '_bkmlist');
+    if (!list) return;
+    list.innerHTML = this.bookmarks.length ? this.bookmarks.map((b,i) =>
+      `<div class="b-bkm-item">
+        <span onclick="BROWSERS['${this.wc.id}'].navigate('${b.url}')" style="flex:1">${b.favicon} ${b.title.substring(0,24)}</span>
+        <span class="b-bkm-del" onclick="BROWSERS['${this.wc.id}'].removeBookmark(${i})">✕</span>
+       </div>`).join('') :
+      `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">No bookmarks yet</div>`;
+  }
+
+  removeBookmark(i) {
+    this.bookmarks.splice(i, 1);
+    localStorage.setItem('orbit_bookmarks', JSON.stringify(this.bookmarks));
+    this._renderBookmarksBar();
+    this._renderBookmarksList();
+  }
+
+  toggleIncognito() {
+    this.incognito = !this.incognito;
+    const btn = document.getElementById(this.wc.id + '_incog');
+    const urlbar = document.getElementById(this.wc.id + '_url');
+    if (btn) btn.style.background = this.incognito ? 'rgba(139,92,246,0.2)' : '';
+    if (urlbar) urlbar.classList.toggle('incognito', this.incognito);
+  }
+
+  _showStatus(url) {
+    const el = document.getElementById(this.wc.id + '_status');
+    if (el) { el.textContent = url; el.classList.add('show'); }
+  }
+
+  _hideStatus() {
+    const el = document.getElementById(this.wc.id + '_status');
+    if (el) el.classList.remove('show');
+  }
+}
+
+// === NOTES APP ===
+class NotesApp {
+  constructor(wcId) {
+    this.wc = document.getElementById(wcId);
+    this.notes = JSON.parse(localStorage.getItem('orbit_notes') || '[]');
+    if (this.notes.length === 0) this.notes.push({
+      id: 1, title: 'Welcome to ORBIT Notes', content: 'Start writing your thoughts here...\n\nNotes auto-save as you type.',
+      date: new Date().toLocaleDateString()
+    });
+    this.activeId = this.notes[0].id;
+    this.nextId = Math.max(...this.notes.map(n => n.id)) + 1;
+    this._render();
+  }
+
+  _render() {
+    this.wc.innerHTML = `
+      <div class="notes">
+        <div class="notes-sidebar">
+          <div class="notes-sidebar-header">
+            <span class="notes-sidebar-title">NOTES</span>
+            <div class="notes-add-btn" onclick="NOTES['${this.wc.id}'].newNote()">+</div>
+          </div>
+          <div id="${this.wc.id}_list"></div>
+        </div>
+        <div class="notes-editor">
+          <div class="notes-editor-header">
+            <input class="notes-title-input" id="${this.wc.id}_title" placeholder="Title..."
+              oninput="NOTES['${this.wc.id}'].saveTitle(this.value)">
+            <div class="notes-del-btn" onclick="NOTES['${this.wc.id}'].deleteNote()">🗑</div>
+          </div>
+          <textarea class="notes-body" id="${this.wc.id}_body" placeholder="Start writing..."
+            oninput="NOTES['${this.wc.id}'].saveBody(this.value)"></textarea>
+        </div>
+      </div>
+    `;
+    this._renderList();
+    this._loadNote(this.activeId);
+  }
+
+  _renderList() {
+    const list = document.getElementById(this.wc.id + '_list');
+    list.innerHTML = this.notes.map(n => `
+      <div class="note-item${n.id === this.activeId ? ' active' : ''}" onclick="NOTES['${this.wc.id}']._loadNote(${n.id})">
+        <div class="note-item-title">${n.title || 'Untitled'}</div>
+        <div class="note-item-preview">${n.content.substring(0,40)}</div>
+        <div class="note-item-date">${n.date}</div>
+      </div>`).join('');
+  }
+
+  _loadNote(id) {
+    this.activeId = id;
+    const note = this.notes.find(n => n.id === id);
+    if (!note) return;
+    document.getElementById(this.wc.id + '_title').value = note.title;
+    document.getElementById(this.wc.id + '_body').value = note.content;
+    this._renderList();
+  }
+
+  saveTitle(val) {
+    const n = this.notes.find(n => n.id === this.activeId);
+    if (n) { n.title = val; n.date = new Date().toLocaleDateString(); this._save(); this._renderList(); }
+  }
+
+  saveBody(val) {
+    const n = this.notes.find(n => n.id === this.activeId);
+    if (n) { n.content = val; n.date = new Date().toLocaleDateString(); this._save(); }
+  }
+
+  newNote() {
+    const n = { id: this.nextId++, title: '', content: '', date: new Date().toLocaleDateString() };
+    this.notes.unshift(n);
+    this._save();
+    this._loadNote(n.id);
+  }
+
+  deleteNote() {
+    if (this.notes.length === 1) return;
+    this.notes = this.notes.filter(n => n.id !== this.activeId);
+    this._save();
+    this._loadNote(this.notes[0].id);
+  }
+
+  _save() { localStorage.setItem('orbit_notes', JSON.stringify(this.notes)); }
+}
+
+// === CHAT APP (NOVA AI) ===
+class ChatApp {
+  constructor(wcId) {
+    this.wc = document.getElementById(wcId);
+    this.history = [];
+    this.loading = false;
+    this._render();
+    setTimeout(() => this._addMsg('ai', 'Hello! I\'m **NOVA**, your ORBIT AI assistant. How can I help you navigate the cosmos today? 🚀'), 300);
+  }
+
+  _render() {
+    this.wc.innerHTML = `
+      <div class="chat">
+        <div class="chat-header">
+          <div class="chat-avatar">🤖</div>
+          <div>
+            <div class="chat-title">NOVA AI</div>
+            <div class="chat-status">Online · ORBIT Assistant</div>
+          </div>
+          <div class="chat-clear" onclick="CHAT['${this.wc.id}'].clear()" title="Clear chat" style="margin-left:auto">🗑</div>
+        </div>
+        <div class="chat-messages" id="${this.wc.id}_msgs"></div>
+        <div class="chat-input-area">
+          <textarea class="chat-input" id="${this.wc.id}_input" placeholder="Message NOVA..."
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();CHAT['${this.wc.id}'].send()}"
+            rows="1"></textarea>
+          <div class="chat-send" onclick="CHAT['${this.wc.id}'].send()">➤</div>
+        </div>
+      </div>
+    `;
+  }
+
+  _addMsg(role, text) {
+    this.history.push({ role: role === 'ai' ? 'assistant' : 'user', content: text });
+    const msgs = document.getElementById(this.wc.id + '_msgs');
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + (role === 'user' ? 'user' : 'ai');
+    const formatted = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>').replace(/`([^`]+)`/g,'<code style="background:rgba(0,200,255,0.1);border-radius:3px;padding:0 4px;font-family:monospace;font-size:11px">$1</code>');
+    div.innerHTML = `
+      <div class="chat-msg-avatar">${role === 'user' ? '👤' : '🤖'}</div>
+      <div class="chat-bubble">${formatted}</div>
+    `;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  _showTyping() {
+    const msgs = document.getElementById(this.wc.id + '_msgs');
+    const div = document.createElement('div');
+    div.className = 'chat-msg ai';
+    div.id = this.wc.id + '_typing';
+    div.innerHTML = `
+      <div class="chat-msg-avatar">🤖</div>
+      <div class="chat-bubble"><div class="chat-typing">
+        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+      </div></div>
+    `;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  _removeTyping() {
+    const t = document.getElementById(this.wc.id + '_typing');
+    if (t) t.remove();
+  }
+
+  async send() {
+    if (this.loading) return;
+    const input = document.getElementById(this.wc.id + '_input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    this._addMsg('user', text);
+    this.loading = true;
+    this._showTyping();
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: 'You are NOVA, the AI assistant built into ORBIT OS — a futuristic browser operating system. You have a helpful, concise, space-themed personality. Keep responses to 2-4 sentences unless the user needs more detail. You know about ORBIT\'s features: Scramjet proxy browser, window manager, Notes, File Manager, Terminal, Snake game. Use occasional space/tech metaphors. Format code in backticks.',
+          messages: this.history.slice(-10).filter(m => m.role !== 'assistant' || m.content !== this.history[this.history.length-1]?.content)
+            .concat([{ role: 'user', content: text }])
+        })
+      });
+      const data = await res.json();
+      this._removeTyping();
+      const reply = data.content?.[0]?.text || 'Signal lost. Please try again.';
+      this._addMsg('ai', reply);
+    } catch {
+      this._removeTyping();
+      this._addMsg('ai', 'Connection error. Make sure you\'re running in the Claude artifact environment. 🛰️');
+    }
+    this.loading = false;
+  }
+
+  clear() {
+    this.history = [];
+    document.getElementById(this.wc.id + '_msgs').innerHTML = '';
+    setTimeout(() => this._addMsg('ai', 'Chat cleared. Ready for a new mission, Commander. 🚀'), 200);
+  }
+}
+
+// === FILE MANAGER ===
+class FileManagerApp {
+  constructor(wcId) {
+    this.wc = document.getElementById(wcId);
+    this.fs = {
+      '~': [
+        {name:'Documents',type:'dir',icon:'📁'},
+        {name:'Downloads',type:'dir',icon:'📥'},
+        {name:'Pictures',type:'dir',icon:'🖼️'},
+        {name:'Music',type:'dir',icon:'🎵'},
+        {name:'orbit.config.json',type:'file',icon:'⚙️',size:'2.4 KB'},
+        {name:'README.txt',type:'file',icon:'📄',size:'1.1 KB'},
+      ],
+      '~/Documents': [
+        {name:'notes.md',type:'file',icon:'📝',size:'4.2 KB'},
+        {name:'architecture.pdf',type:'file',icon:'📊',size:'1.2 MB'},
+        {name:'Projects',type:'dir',icon:'📁'},
+      ],
+      '~/Downloads': [
+        {name:'scramjet.zip',type:'file',icon:'📦',size:'3.4 MB'},
+        {name:'bare-server.tar.gz',type:'file',icon:'📦',size:'892 KB'},
+      ],
+      '~/Pictures': [
+        {name:'nebula_wallpaper.png',type:'file',icon:'🖼️',size:'4.8 MB'},
+        {name:'orbit_logo.svg',type:'file',icon:'🎨',size:'12 KB'},
+      ],
+    };
+    this.cwd = '~';
+    this.selected = null;
+    this._render();
+  }
+
+  _render() {
+    this.wc.innerHTML = `
+      <div class="fm">
+        <div class="fm-nav">
+          <div class="fm-nav-btn" onclick="FM['${this.wc.id}'].goUp()" title="Up">↑</div>
+          <div class="fm-nav-btn" onclick="FM['${this.wc.id}'].goHome()" title="Home">🏠</div>
+          <input class="fm-path" id="${this.wc.id}_path" value="${this.cwd}" readonly>
+          <div class="fm-actions">
+            <div class="fm-action-btn" onclick="FM['${this.wc.id}'].newFolder()">+ Folder</div>
+            <div class="fm-action-btn" onclick="FM['${this.wc.id}'].newFile()">+ File</div>
+          </div>
+        </div>
+        <div class="fm-body">
+          <div class="fm-sidebar">
+            <div class="fm-sidebar-sep">Places</div>
+            <div class="fm-sidebar-item active" onclick="FM['${this.wc.id}'].cd('~')">🏠 Home</div>
+            <div class="fm-sidebar-item" onclick="FM['${this.wc.id}'].cd('~/Documents')">📁 Documents</div>
+            <div class="fm-sidebar-item" onclick="FM['${this.wc.id}'].cd('~/Downloads')">📥 Downloads</div>
+            <div class="fm-sidebar-item" onclick="FM['${this.wc.id}'].cd('~/Pictures')">🖼️ Pictures</div>
+            <div class="fm-sidebar-sep">System</div>
+            <div class="fm-sidebar-item" onclick="FM['${this.wc.id}'].cd('~')">💾 ORBIT Drive</div>
+          </div>
+          <div class="fm-grid" id="${this.wc.id}_grid"></div>
+        </div>
+        <div class="fm-status-bar">
+          <span id="${this.wc.id}_count">0 items</span>
+          <span id="${this.wc.id}_sel">Nothing selected</span>
+        </div>
+      </div>
+    `;
+    this._renderGrid();
+  }
+
+  _renderGrid() {
+    const grid = document.getElementById(this.wc.id + '_grid');
+    const items = this.fs[this.cwd] || [];
+    grid.innerHTML = items.map((item,i) => `
+      <div class="fm-item${this.selected === i ? ' selected' : ''}"
+           onclick="FM['${this.wc.id}'].select(${i})"
+           ondblclick="FM['${this.wc.id}'].open(${i})">
+        <div class="fm-item-icon">${item.icon}</div>
+        <div class="fm-item-name">${item.name}</div>
+      </div>`).join('');
+    document.getElementById(this.wc.id + '_count').textContent = `${items.length} item${items.length!==1?'s':''}`;
+    document.getElementById(this.wc.id + '_path').value = this.cwd;
+    this.selected = null;
+    document.getElementById(this.wc.id + '_sel').textContent = 'Nothing selected';
+  }
+
+  select(i) {
+    this.selected = i;
+    const item = (this.fs[this.cwd] || [])[i];
+    document.getElementById(this.wc.id + '_sel').textContent = item ? `${item.name}${item.size ? ' · ' + item.size : ''}` : '';
+    this._renderGrid();
+    this.selected = i;
+    document.querySelectorAll(`#${this.wc.id}_grid .fm-item`).forEach((el,j) =>
+      el.classList.toggle('selected', j === i));
+  }
+
+  open(i) {
+    const item = (this.fs[this.cwd] || [])[i];
+    if (!item) return;
+    if (item.type === 'dir') this.cd(this.cwd + '/' + item.name.replace('~/', '').replace('~', ''));
+  }
+
+  cd(path) {
+    if (!this.fs[path]) {
+      this.fs[path] = [];
+    }
+    this.cwd = path;
+    this._renderGrid();
+    document.querySelectorAll(`#${this.wc.id.split('_')[0]}_ .fm-sidebar-item`).forEach(el =>
+      el.classList.remove('active'));
+  }
+
+  goUp() {
+    const parts = this.cwd.split('/');
+    if (parts.length > 1) this.cd(parts.slice(0,-1).join('/') || '~');
+    else this.cd('~');
+  }
+
+  goHome() { this.cd('~'); }
+
+  newFolder() {
+    const name = prompt('Folder name:');
+    if (!name) return;
+    if (!this.fs[this.cwd]) this.fs[this.cwd] = [];
+    this.fs[this.cwd].unshift({ name, type:'dir', icon:'📁' });
+    this._renderGrid();
+  }
+
+  newFile() {
+    const name = prompt('File name:');
+    if (!name) return;
+    if (!this.fs[this.cwd]) this.fs[this.cwd] = [];
+    this.fs[this.cwd].unshift({ name, type:'file', icon:'📄', size:'0 B' });
+    this._renderGrid();
+  }
+}
+
+// === SETTINGS APP ===
+class SettingsApp {
+  constructor(wcId) {
+    this.wc = document.getElementById(wcId);
+    this.activeSection = 'appearance';
+    this._render();
+  }
+
+  _render() {
+    this.wc.innerHTML = `
+      <div class="settings">
+        <div class="settings-nav">
+          ${['appearance','display','privacy','network','system','about'].map(s =>
+            `<div class="settings-nav-item${s===this.activeSection?' active':''}" 
+                 onclick="SETT['${this.wc.id}'].showSection('${s}')">
+              ${this._icon(s)} ${s.charAt(0).toUpperCase()+s.slice(1)}
+             </div>`).join('')}
+        </div>
+        <div class="settings-content" id="${this.wc.id}_content"></div>
+      </div>
+    `;
+    this.showSection(this.activeSection);
+  }
+
+  _icon(s) { return {appearance:'🎨',display:'🖥',privacy:'🔒',network:'🌐',system:'⚙️',about:'ℹ️'}[s]||'●'; }
+
+  showSection(s) {
+    this.activeSection = s;
+    document.querySelectorAll(`#${this.wc.id.replace(/_/g,'_')} .settings-nav-item`)
+      .forEach(el => el.classList.toggle('active', el.textContent.trim().toLowerCase().includes(s)));
+    const content = document.getElementById(this.wc.id + '_content');
+    content.innerHTML = this._sectionHTML(s);
+  }
+
+  _sectionHTML(s) {
+    const sections = {
+      appearance: `
+        <div class="settings-section">
+          <div class="settings-section-title">Accent Color</div>
+          <div class="settings-color-row">
+            ${[['#00c8ff','Nebula Blue'],['#8b5cf6','Cosmic Purple'],['#10b981','Stellar Green'],['#f59e0b','Solar Amber'],['#ec4899','Pulsar Pink'],['#ef4444','Red Dwarf']].map(([c,n]) =>
+              `<div class="settings-color-swatch${c==='#00c8ff'?' active':''}" style="background:${c}" title="${n}"
+                   onclick="SETT['${this.wc.id}'].setAccent('${c}',this)"></div>`).join('')}
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title">Appearance</div>
+          <div class="settings-row"><div><div class="settings-row-label">Blur Effects</div><div class="settings-row-desc">Glassmorphism windows</div></div>
+            <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
+          <div class="settings-row"><div><div class="settings-row-label">Animations</div><div class="settings-row-desc">Window open/close effects</div></div>
+            <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
+          <div class="settings-row"><div><div class="settings-row-label">Nebula Background</div><div class="settings-row-desc">Animated cosmic wallpaper</div></div>
+            <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
+        </div>`,
+      display: `
+        <div class="settings-section">
+          <div class="settings-section-title">Display</div>
+          <div class="settings-row"><div><div class="settings-row-label">Resolution</div></div>
+            <select class="settings-select"><option>${screen.width}×${screen.height}</option></select></div>
+          <div class="settings-row"><div><div class="settings-row-label">Dock Size</div></div>
+            <input type="range" class="settings-slider" min="40" max="72" value="52"></div>
+          <div class="settings-row"><div><div class="settings-row-label">UI Scale</div></div>
+            <select class="settings-select"><option>100%</option><option>110%</option><option>90%</option></select></div>
+        </div>`,
+      privacy: `
+        <div class="settings-section">
+          <div class="settings-section-title">Privacy & Security</div>
+          <div class="settings-row"><div><div class="settings-row-label">Block Trackers</div><div class="settings-row-desc">Via Scramjet headers</div></div>
+            <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
+          <div class="settings-row"><div><div class="settings-row-label">HTTPS Only Mode</div><div class="settings-row-desc">Upgrade insecure requests</div></div>
+            <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
+          <div class="settings-row"><div><div class="settings-row-label">Save History</div><div class="settings-row-desc">Per-tab browsing history</div></div>
+            <div class="settings-toggle on" onclick="this.classList.toggle('on')"></div></div>
+          <div class="settings-row"><div><div class="settings-row-label">Scramjet Codec</div></div>
+            <select class="settings-select"><option>Base64 URL</option><option>XOR</option><option>Plain</option></select></div>
+        </div>`,
+      network: `
+        <div class="settings-section">
+          <div class="settings-section-title">Scramjet Proxy</div>
+          <div class="settings-row"><div><div class="settings-row-label">Bare Server URL</div></div>
+            <input style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);width:140px" value="${Scramjet.BARE_SERVER}"></div>
+          <div class="settings-row"><div><div class="settings-row-label">Service Worker</div></div>
+            <input style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);width:140px" value="${Scramjet.SW_PATH}"></div>
+          <div class="settings-row"><div><div class="settings-row-label">Proxy Status</div></div>
+            <span style="font-size:11px;color:var(--amber)">⚠ Backend Required</span></div>
+        </div>`,
+      system: `
+        <div class="settings-section">
+          <div class="settings-section-title">System</div>
+          <div class="settings-row"><div><div class="settings-row-label">Kernel</div></div><span style="font-size:11px;color:var(--text-dim)">ORBIT v1.0.0</span></div>
+          <div class="settings-row"><div><div class="settings-row-label">Scramjet</div></div><span style="font-size:11px;color:var(--text-dim)">v2.0 (Simulated)</span></div>
+          <div class="settings-row"><div><div class="settings-row-label">Renderer</div></div><span style="font-size:11px;color:var(--text-dim)">${navigator.userAgent.includes('Chrome')?'Blink':'WebKit'}</span></div>
+          <div class="settings-row"><div><div class="settings-row-label">Memory</div></div><span style="font-size:11px;color:var(--text-dim)">~${Math.round((performance.memory?.usedJSHeapSize||0)/1024/1024)||'--'} MB used</span></div>
+        </div>`,
+      about: `
+        <div class="about-orbit">
+          <div class="about-orbit-logo">ORBIT</div>
+          <div class="about-orbit-ver">Browser OS v1.0 · Build 2025</div>
+          <div style="margin:20px 0;color:var(--text-dim);font-size:13px;line-height:1.8;max-width:400px;margin-left:auto;margin-right:auto">
+            A next-generation browser OS powered by the Scramjet proxy engine.<br>
+            Built for privacy, speed, and a cosmic experience.
+          </div>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+            <span style="padding:4px 12px;border-radius:6px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.2);font-size:11px;color:var(--blue)">Scramjet v2</span>
+            <span style="padding:4px 12px;border-radius:6px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);font-size:11px;color:var(--purple)">Bare v3</span>
+            <span style="padding:4px 12px;border-radius:6px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);font-size:11px;color:var(--green)">Service Worker</span>
+          </div>
+        </div>`
+    };
+    return sections[s] || '';
+  }
+
+  setAccent(color, el) {
+    document.documentElement.style.setProperty('--blue', color);
+    document.querySelectorAll('.settings-color-swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+  }
+}
+
+// === SNAKE GAME ===
+class SnakeGame {
+  constructor(wcId) {
+    this.wc = document.getElementById(wcId);
+    this.GRID = 20; this.CELL = 16;
+    this.snake = [{x:10,y:10}];
+    this.dir = {x:1,y:0};
+    this.food = this._spawnFood();
+    this.score = 0;
+    this.running = false;
+    this.interval = null;
+    this._render();
+    this._keyHandler = e => this._key(e);
+    document.addEventListener('keydown', this._keyHandler);
+  }
+
+  _render() {
+    this.wc.innerHTML = `
+      <div class="snake">
+        <div class="snake-score">SCORE: <span id="${this.wc.id}_score">0</span></div>
+        <canvas class="snake-canvas" id="${this.wc.id}_canvas" 
+          width="${this.GRID*this.CELL}" height="${this.GRID*this.CELL}"></canvas>
+        <div class="snake-controls">↑↓←→ or WASD to move · P to pause</div>
+        <div class="snake-overlay" id="${this.wc.id}_overlay">
+          <div style="font-size:40px">🐍</div>
+          <h2>COSMIC SNAKE</h2>
+          <p>Guide the serpent through the cosmos</p>
+          <div class="snake-btn" onclick="SNAKE['${this.wc.id}'].start()">LAUNCH 🚀</div>
+        </div>
+      </div>
+    `;
+    this.canvas = document.getElementById(this.wc.id + '_canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this._draw();
+  }
+
+  start() {
+    document.getElementById(this.wc.id + '_overlay').style.display = 'none';
+    this.snake = [{x:10,y:10}];
+    this.dir = {x:1,y:0};
+    this.food = this._spawnFood();
+    this.score = 0;
+    this._updateScore();
+    this.running = true;
+    clearInterval(this.interval);
+    this.interval = setInterval(() => this._tick(), 130);
+  }
+
+  _tick() {
+    if (!this.running) return;
+    const head = { x: this.snake[0].x + this.dir.x, y: this.snake[0].y + this.dir.y };
+    if (head.x<0||head.x>=this.GRID||head.y<0||head.y>=this.GRID||this.snake.some(s=>s.x===head.x&&s.y===head.y)) {
+      this._gameOver(); return;
+    }
+    this.snake.unshift(head);
+    if (head.x===this.food.x&&head.y===this.food.y) {
+      this.score += 10; this._updateScore(); this.food = this._spawnFood();
+    } else this.snake.pop();
+    this._draw();
+  }
+
+  _draw() {
+    const ctx = this.ctx, G = this.GRID, C = this.CELL;
+    ctx.fillStyle = '#03030f';
+    ctx.fillRect(0,0,G*C,G*C);
+    for (let x=0;x<G;x++) for (let y=0;y<G;y++) {
+      ctx.fillStyle = (x+y)%2===0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+      ctx.fillRect(x*C,y*C,C,C);
+    }
+    // Food
+    ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 12;
+    ctx.fillStyle = '#f59e0b';
+    ctx.beginPath(); ctx.arc(this.food.x*C+C/2,this.food.y*C+C/2,C/2-2,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Snake
+    this.snake.forEach((s,i) => {
+      const t = i/this.snake.length;
+      const r = Math.round(0 + t*0);
+      const g = Math.round(200 - t*100);
+      const b = Math.round(255 - t*100);
+      ctx.shadowColor = `rgb(${r},${g},${b})`; ctx.shadowBlur = i===0?16:4;
+      ctx.fillStyle = i===0 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${0.9-t*0.5})`;
+      const pad = i===0?1:2;
+      ctx.beginPath();
+      ctx.roundRect(s.x*C+pad,s.y*C+pad,C-pad*2,C-pad*2,i===0?4:3);
+      ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+  }
+
+  _gameOver() {
+    this.running = false; clearInterval(this.interval);
+    const overlay = document.getElementById(this.wc.id + '_overlay');
+    overlay.innerHTML = `
+      <div style="font-size:40px">💫</div>
+      <h2>GAME OVER</h2>
+
+      <p>Final Score: ${this.score}</p>
+      <div class="snake-btn" onclick="SNAKE['${this.wc.id}'].start()">RETRY 🔄</div>
+    `;
+    overlay.style.display = 'flex';
+  }
+
+  _key(e) {
+    if (!this.wc.offsetParent && !document.getElementById('win_snake')) return;
+    const map = {ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
+                 w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0}};
+    if (map[e.key]) {
+      const d = map[e.key];
+      if (d.x !== -this.dir.x || d.y !== -this.dir.y) { this.dir = d; e.preventDefault(); }
+    }
+    if (e.key==='p') this.running = !this.running;
+  }
+
+  _spawnFood() {
+    let f;
+    do { f={x:Math.floor(Math.random()*this.GRID),y:Math.floor(Math.random()*this.GRID)}; }
+    while (this.snake.some(s=>s.x===f.x&&s.y===f.y));
+    return f;
+  }
+
+  _updateScore() {
+    const el = document.getElementById(this.wc.id + '_score');
+    if (el) el.textContent = this.score;
+  }
+
+  destroy() { clearInterval(this.interval); document.removeEventListener('keydown',this._keyHandler); }
+}
+
+// === TERMINAL ===
+class TerminalApp {
+  constructor(wcId) {
+    this.wc = document.getElementById(wcId);
+    this.cwd = '~';
+    this.history = [];
+    this.hIdx = -1;
+    this._render();
+    this._print('\x1b[1;34mORBIT Terminal v1.0\x1b[0m — Scramjet Proxy Shell');
+    this._print('Type \x1b[33mhelp\x1b[0m for available commands.\n');
+  }
+
+  _render() {
+    this.wc.innerHTML = `
+      <div class="terminal">
+        <div class="term-output" id="${this.wc.id}_out"></div>
+        <div class="term-input-row">
+          <span class="term-prompt">orbit@${this.cwd}$&nbsp;</span>
+          <input class="term-input" id="${this.wc.id}_in" autocomplete="off" spellcheck="false"
+            onkeydown="TERM['${this.wc.id}']._onKey(event)">
+        </div>
+      </div>
+    `;
+    document.getElementById(this.wc.id + '_in').focus();
+  }
+
+  _print(text) {
+    const out = document.getElementById(this.wc.id + '_out');
+    const line = document.createElement('div');
+    line.innerHTML = text.replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\x1b\[1;34m(.*?)\x1b\[0m/g,'<span style="color:#00c8ff;font-weight:bold">$1</span>')
+      .replace(/\x1b\[33m(.*?)\x1b\[0m/g,'<span style="color:#f59e0b">$1</span>')
+      .replace(/\x1b\[32m(.*?)\x1b\[0m/g,'<span style="color:#10b981">$1</span>')
+      .replace(/\x1b\[31m(.*?)\x1b\[0m/g,'<span style="color:#ef4444">$1</span>');
+    out.appendChild(line);
+    out.scrollTop = out.scrollHeight;
+  }
+
+  _onKey(e) {
+    if (e.key === 'Enter') {
+      const input = document.getElementById(this.wc.id + '_in');
+      const cmd = input.value.trim();
+      input.value = '';
+      if (cmd) { this.history.unshift(cmd); this.hIdx = -1; }
+      this._print(`orbit@${this.cwd}$ ${cmd}`);
+      if (cmd) this._exec(cmd);
+    } else if (e.key === 'ArrowUp') {
+      const input = document.getElementById(this.wc.id + '_in');
+      if (this.hIdx < this.history.length-1) input.value = this.history[++this.hIdx];
+    } else if (e.key === 'ArrowDown') {
+      const input = document.getElementById(this.wc.id + '_in');
+      this.hIdx = Math.max(-1, this.hIdx-1);
+      input.value = this.hIdx >= 0 ? this.history[this.hIdx] : '';
+    }
+  }
+
+  _exec(raw) {
+    const [cmd, ...args] = raw.split(' ');
+    const cmds = {
+      help: () => this._print('\x1b[33mCommands:\x1b[0m ls, cd, pwd, echo, clear, scramjet, about, date'),
+      ls: () => this._print(`\x1b[1;34m📁 Documents  📁 Downloads  📁 Pictures\x1b[0m\n📄 orbit.config.json  📄 README.txt`),
+      pwd: () => this._print(`/home/orbit/${this.cwd.replace('~','')}`),
+      cd: () => { this.cwd = args[0]||'~'; this._print(''); },
+      echo: () => this._print(args.join(' ')),
+      clear: () => { document.getElementById(this.wc.id + '_out').innerHTML=''; },
+      date: () => this._print(new Date().toString()),
+      about: () => this._print(`\x1b[1;34mORBIT OS v1.0\x1b[0m — Browser Operating System\nPowered by Scramjet Proxy Engine`),
+      scramjet: () => {
+        const sub = args[0];
+        if (sub==='status') this._print('\x1b[33m[SJ]\x1b[0m Bare server: \x1b[31mOffline (backend needed)\x1b[0m\n[SJ] SW Path: ' + Scramjet.SW_PATH);
+        else if (sub==='encode' && args[1]) this._print('\x1b[32m' + Scramjet.encode(args[1]) + '\x1b[0m');
+        else if (sub==='decode' && args[1]) this._print('\x1b[32m' + Scramjet.decode(args[1]) + '\x1b[0m');
+        else if (sub==='rewrite' && args[1]) this._print('\x1b[32m' + Scramjet.rewrite(args.slice(1).join(' ')) + '\x1b[0m');
+        else this._print('Usage: scramjet [status|encode <url>|decode <str>|rewrite <url>]');
+      }
+    };
+    if (cmds[cmd]) cmds[cmd]();
+    else this._print(`\x1b[31mCommand not found: ${cmd}\x1b[0m. Type \x1b[33mhelp\x1b[0m.`);
+  }
+}
+
+// === ARCHITECTURE DOCS ===
+class ArchDocsApp {
+  constructor(wcId) {
+    this.wc = document.getElementById(wcId);
+    this.active = 'overview';
+    this._render();
+  }
+
+  _render() {
+    const sections = {
+      'overview':'System Overview','scramjet':'Scramjet Engine','bare-server':'Bare Server',
+      'sw':'Service Worker','tabs':'Tab Manager','security':'Security','deploy':'Deployment',
+      'api':'API Reference'
+    };
+    this.wc.innerHTML = `
+      <div class="arch-docs">
+        <div class="arch-sidebar">
+          ${Object.entries(sections).map(([k,v])=>
+            `<div class="arch-nav-item${k===this.active?' active':''}" onclick="DOCS['${this.wc.id}'].show('${k}')">📡 ${v}</div>`
+          ).join('')}
+        </div>
+        <div class="arch-content" id="${this.wc.id}_content"></div>
+      </div>`;
+    this.show(this.active);
+  }
+
+  show(k) {
+    this.active = k;
+    document.querySelectorAll(`#${this.wc.id.replace(/\[/g,'\\[').replace(/\]/g,'\\]')} .arch-nav-item`)
+      .forEach((el,i)=>el.classList.toggle('active',i===['overview','scramjet','bare-server','sw','tabs','security','deploy','api'].indexOf(k)));
+    document.getElementById(this.wc.id+'_content').innerHTML = this._getDoc(k);
+  }
+
+  _getDoc(k) {
+    const docs = {
+      overview:`
+        <div class="arch-h1">🌌 ORBIT OS — System Architecture</div>
+        <div class="arch-p">ORBIT is a browser-native OS built entirely on web standards. It runs in a single HTML document and uses Scramjet's service worker proxy as its core networking layer.</div>
+        <div class="arch-h2">Architecture Layers</div>
+        <table class="arch-table"><thead><tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr></thead><tbody>
+          <tr><td>Kernel</td><td>Vanilla JS</td><td>Window manager, event bus, app lifecycle</td></tr>
+          <tr><td>Proxy Engine</td><td>Scramjet v2</td><td>URL rewriting, SW interception, codec</td></tr>
+          <tr><td>Network</td><td>Bare Server v3</td><td>HTTP proxy, WebSocket relay, CORS bypass</td></tr>
+          <tr><td>Storage</td><td>LocalStorage / IDB</td><td>Notes, bookmarks, history persistence</td></tr>
+          <tr><td>UI</td><td>CSS/HTML/JS</td><td>Desktop, windows, dock, animations</td></tr>
+        </tbody></table>
+        <div class="arch-h2">Component Graph</div>
+        <div class="arch-code">ORBIT OS
+├── Desktop (drag-drop icons, wallpaper, context menu)
+├── Window Manager (drag, resize, z-stack, maximize)
+├── Dock (running indicators, clock, quick-launch)
+└── Apps
+    ├── Browser (Scramjet proxy, tabs, history, bookmarks)
+    ├── NOVA AI (Claude API, context-aware assistant)
+    ├── Notes (localStorage, rich editor)
+    ├── File Manager (virtual VFS, drag-drop)
+    ├── Terminal (Scramjet CLI, shell commands)
+    ├── Snake (canvas game)
+    └── Settings (accent, proxy config, system info)</div>`,
+
+      scramjet:`
+        <div class="arch-h1">🔀 Scramjet Proxy Engine</div>
+        <div class="arch-p">Scramjet is a JavaScript rewriting engine that operates as a Service Worker. It intercepts all fetch() and XHR calls, rewrites URLs to route through the Bare server, and reconstructs responses on the client side.</div>
+        <div class="arch-h2">URL Encoding Pipeline</div>
+        <div class="arch-code">Input URL:      https://example.com/path?query=1
+      ↓
+URL Normalize:  ensure https:// prefix
+      ↓
+Base64URL Encode: btoa(url) → replace +→- /→_ strip =
+      ↓
+Scramjet URL:   __orbit_proxy__/aHR0cHM6Ly9leGFtcGxlLmNvbQ
+      ↓
+SW Intercepts:  fetch(__orbit_proxy__/...) → Bare Server
+      ↓
+Bare Server:    GET https://example.com → response
+      ↓
+Rewrite:        Scramjet rewrites all URLs in HTML/JS/CSS
+      ↓
+Rendered:       Client receives proxied, rewritten page</div>
+        <div class="arch-h2">JavaScript Implementation</div>
+        <div class="arch-code">// ORBIT Scramjet URL Utilities
+const Scramjet = {
+  PREFIX: '__orbit_proxy__/',
+
+  encode(url) {
+    const bytes = new TextEncoder().encode(url);
+    let binary = '';
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    // URL-safe base64 (no padding)
+    return btoa(binary).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=/g,'');
+  },
+
+  rewrite(url) {
+    if (!url.match(/^https?:\\/\\//i)) url = 'https://' + url;
+    return this.PREFIX + this.encode(url);
+  },
+
+  extract(proxied) {
+    const enc = proxied.slice(this.PREFIX.length);
+    const padded = enc.replace(/-/g,'+').replace(/_/g,'/')
+      + '=='.slice(0,(4-enc.length%4)%4);
+    const bytes = Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+};</div>
+        <div class="arch-h2">Service Worker Registration</div>
+        <div class="arch-code">// register-sw.js (frontend)
+if ('serviceWorker' in navigator) {
+  const sw = await navigator.serviceWorker.register('/scramjet/worker/scramjet.worker.js', {
+    scope: '/'
+  });
+  
+  // Configure the Scramjet controller
+  const controller = new ScramjetController({
+    prefix: '/__orbit_proxy__/',
+    codec: { encode: url => btoa(url), decode: str => atob(str) },
+    files: {
+      wasm: '/scramjet/scramjet.wasm',
+      worker: '/scramjet/worker/scramjet.worker.js',
+      client: '/scramjet/scramjet.client.js',
+      shared: '/scramjet/scramjet.shared.js',
+    },
+    bare: '/bare/'
+  });
+  
+  await controller.init();
+}</div>`,
+
+      'bare-server':`
+        <div class="arch-h1">🛰 Bare Server v3</div>
+        <div class="arch-p">The Bare server is the backend HTTP/WS proxy. It receives requests from Scramjet's service worker and forwards them to the target server, bypassing CORS and network restrictions.</div>
+        <div class="arch-h2">Backend Setup (Node.js)</div>
+        <div class="arch-code">// server.js — ORBIT Bare Server Backend
+import { createServer } from 'node:http';
+import { createBareServer } from '@mercuryworkshop/bare-server-node';
+import { createReadStream, existsSync } from 'node:fs';
+import { join } from 'node:path';
+
+const bare = createBareServer('/bare/', {
+  logErrors: false,
+  maintainer: {
+    email: 'admin@orbit.os',
+    website: 'https://orbit.os',
+  }
+});
+
+const server = createServer((req, res) => {
+  // Let Bare handle proxy requests
+  if (bare.shouldRoute(req)) {
+    bare.routeRequest(req, res);
+    return;
+  }
+
+  // Serve static ORBIT frontend files
+  const url = req.url === '/' ? '/index.html' : req.url;
+  const filePath = join('./dist', url);
+
+  if (existsSync(filePath)) {
+    const ext = filePath.split('.').pop();
+    const mimeTypes = {
+      html: 'text/html',
+      js:   'application/javascript',
+      css:  'text/css',
+      wasm: 'application/wasm',
+    };
+    res.setHeader('Content-Type', mimeTypes[ext] || 'text/plain');
+    createReadStream(filePath).pipe(res);
+  } else {
+    res.writeHead(404);
+    res.end('Not Found');
+  }
+});
+
+server.on('upgrade', (req, socket, head) => {
+  if (bare.shouldRoute(req)) bare.routeUpgrade(req, socket, head);
+  else socket.end();
+});
+
+server.listen(8080, () => console.log('🌌 ORBIT Bare Server → http://localhost:8080'));
+</div>
+        <div class="arch-h2">Bare Protocol v3 Headers</div>
+        <table class="arch-table"><thead><tr><th>Header</th><th>Purpose</th></tr></thead><tbody>
+          <tr><td>X-Bare-Host</td><td>Target hostname</td></tr>
+          <tr><td>X-Bare-Port</td><td>Target port</td></tr>
+          <tr><td>X-Bare-Protocol</td><td>http: or https:</td></tr>
+          <tr><td>X-Bare-Path</td><td>Request path + query</td></tr>
+          <tr><td>X-Bare-Headers</td><td>JSON-encoded forwarded headers</td></tr>
+        </tbody></table>`,
+
+      sw:`
+        <div class="arch-h1">⚙️ Service Worker Architecture</div>
+        <div class="arch-p">The Scramjet service worker (scramjet.worker.js) intercepts every network request inside its scope and routes it through the Bare server. It handles URL decoding, request transformation, and response rewriting.</div>
+        <div class="arch-h2">Request Interception Flow</div>
+        <div class="arch-code">Browser fetch('/__orbit_proxy__/aHR0...')
+         ↓
+Service Worker intercepts via 'fetch' event
+         ↓
+Scramjet.decode(encodedUrl) → 'https://example.com'
+         ↓
+Build Bare v3 request headers
+         ↓
+fetch('/bare/', { headers: bareHeaders })
+         ↓
+Bare Server proxies to https://example.com
+         ↓
+Response returned to SW
+         ↓
+Scramjet rewrites HTML/JS/CSS URLs:
+  - href="/path" → /__orbit_proxy__/[encoded]
+  - src="https://cdn.x.com/y" → /__orbit_proxy__/[encoded]
+  - location.href = ... → rewritten
+         ↓
+Reconstructed response → Browser renders page</div>
+        <div class="arch-h2">URL Rewriting Targets</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="arch-tag">HTML href/src/action</span>
+          <span class="arch-tag">CSS url()</span>
+          <span class="arch-tag">JS fetch()</span>
+          <span class="arch-tag">JS XMLHttpRequest</span>
+          <span class="arch-tag">JS location</span>
+          <span class="arch-tag">Worker importScripts</span>
+          <span class="arch-tag">WebSocket</span>
+          <span class="arch-tag">EventSource</span>
+          <span class="arch-tag">import maps</span>
+        </div>`,
+
+      tabs:`
+        <div class="arch-h1">📑 Tab Manager Architecture</div>
+        <div class="arch-p">Each tab maintains its own isolated state: URL, history stack, history index, favicon, title, and loading state. Navigation mutates the history stack correctly for back/forward support.</div>
+        <div class="arch-h2">Tab Data Model</div>
+        <div class="arch-code">interface Tab {
+  id: number;
+  url: string;           // display URL (pre-proxy)
+  proxiedUrl: string;    // scramjet-encoded URL
+  title: string;
+  favicon: string;
+  history: string[];     // navigation history stack
+  historyIndex: number;  // current position in stack
+  loading: boolean;
+  incognito: boolean;    // if true, no history persistence
+  frameEl: HTMLElement;  // the frame container element
+  tabEl: HTMLElement;    // the tab button element
+}</div>
+        <div class="arch-h2">Navigation Algorithm</div>
+        <div class="arch-code">navigate(url: string) {
+  // 1. Truncate forward history (clears "forward" stack)
+  tab.history = tab.history.slice(0, tab.historyIndex + 1);
+  
+  // 2. Push new URL onto history
+  tab.history.push(url);
+  tab.historyIndex = tab.history.length - 1;
+  
+  // 3. Encode via Scramjet
+  const proxied = Scramjet.rewrite(url);
+  
+  // 4. Load into frame
+  loadFrame(tab, proxied);
+  
+  // 5. Update URL bar (show original, not encoded)
+  urlbar.value = url;
+}
+
+back() {
+  if (tab.historyIndex <= 0) return; // already at start
+  tab.historyIndex--;
+  loadFrame(tab, Scramjet.rewrite(tab.history[tab.historyIndex]));
+}
+
+forward() {
+  if (tab.historyIndex >= tab.history.length - 1) return;
+  tab.historyIndex++;
+  loadFrame(tab, Scramjet.rewrite(tab.history[tab.historyIndex]));
+}</div>`,
+
+      security:`
+        <div class="arch-h1">🔒 Security Architecture</div>
+        <div class="arch-h2">Threat Model</div>
+        <table class="arch-table"><thead><tr><th>Threat</th><th>Mitigation</th></tr></thead><tbody>
+          <tr><td>Origin leakage</td><td>Scramjet strips Referer/Origin headers before forwarding</td></tr>
+          <tr><td>Cookie theft</td><td>Cookies are sandboxed per Scramjet prefix, not forwarded raw</td></tr>
+          <tr><td>CSP bypass</td><td>Scramjet rewrites CSP headers to allow proxied sources</td></tr>
+          <tr><td>JS sandbox escape</td><td>Scramjet wraps globalThis, window, document with proxy objects</td></tr>
+          <tr><td>CORS exploitation</td><td>Bare server only proxies; no credential forwarding by default</td></tr>
+          <tr><td>SW scope abuse</td><td>SW registered at root scope; all requests scoped to ORBIT origin</td></tr>
+        </tbody></table>
+        <div class="arch-h2">Content Security Policy (ORBIT)</div>
+        <div class="arch-code">Content-Security-Policy:
+  default-src 'self' /__orbit_proxy__/;
+  script-src 'self' 'wasm-unsafe-eval';
+  worker-src 'self';
+  connect-src 'self' /bare/;
+  frame-src 'self' /__orbit_proxy__/;
+  img-src * data: blob:;</div>
+        <div class="arch-h2">Incognito Mode</div>
+        <div class="arch-code">// When incognito is active:
+// - No history written to localStorage
+// - No cookies persisted after tab close
+// - URL bar shows "🕵 Private" indicator
+// - Scramjet uses ephemeral session keys
+// - Tab closure clears all associated data</div>`,
+
+      deploy:`
+        <div class="arch-h1">🚀 Deployment Guide</div>
+        <div class="arch-h2">1. Install Dependencies</div>
+        <div class="arch-code">npm install @mercuryworkshop/bare-server-node scramjet-core
+# Or with yarn:
+yarn add @mercuryworkshop/bare-server-node scramjet-core</div>
+        <div class="arch-h2">2. Build Frontend</div>
+        <div class="arch-code">orbit/
+├── dist/
+│   ├── index.html        ← ORBIT main shell
+│   ├── scramjet/
+│   │   ├── scramjet.client.js
+│   │   ├── scramjet.shared.js
+│   │   ├── scramjet.wasm
+│   │   └── worker/
+│   │       └── scramjet.worker.js
+│   └── register-sw.js
+├── server.js             ← Bare server + static serving
+└── package.json</div>
+        <div class="arch-h2">3. Deploy Options</div>
+        <table class="arch-table"><thead><tr><th>Platform</th><th>Command</th><th>Notes</th></tr></thead><tbody>
+          <tr><td>Local Dev</td><td>node server.js</td><td>localhost:8080</td></tr>
+          <tr><td>Railway</td><td>railway deploy</td><td>Auto-detects Node.js</td></tr>
+          <tr><td>Render</td><td>render deploy</td><td>Free tier available</td></tr>
+          <tr><td>Heroku</td><td>git push heroku main</td><td>Set PORT env var</td></tr>
+          <tr><td>VPS</td><td>pm2 start server.js</td><td>Use nginx reverse proxy</td></tr>
+        </tbody></table>
+        <div class="arch-h2">Nginx Config (Production)</div>
+        <div class="arch-code">server {
+  listen 443 ssl http2;
+  server_name orbit.yourdomain.com;
+  
+  location / {
+    proxy_pass http://localhost:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+    # Required for Bare WebSocket support
+    proxy_read_timeout 86400;
+  }
+}</div>`,
+
+      api:`
+        <div class="arch-h1">📡 ORBIT Internal API</div>
+        <div class="arch-h2">Window Manager API</div>
+        <div class="arch-code">WM.open({ id, title, icon, html, width, height, x, y })
+WM.close(id)
+WM.minimize(id)
+WM.toggleMax(id)
+WM.focus(id)</div>
+        <div class="arch-h2">Scramjet URL API</div>
+        <div class="arch-code">Scramjet.rewrite(url: string): string   // url → proxied
+Scramjet.extract(proxied: string): string  // proxied → url
+Scramjet.encode(url: string): string       // url → base64url
+Scramjet.decode(enc: string): string       // base64url → url
+Scramjet.isProxied(url: string): boolean
+Scramjet.getDisplayUrl(url: string): string
+Scramjet.getBareConfig(): { server, version }
+Scramjet.getServiceWorkerConfig(): SWConfig</div>
+        <div class="arch-h2">App Registry</div>
+        <div class="arch-code">ORBIT.openApp(id: string)    // launch app by ID
+// App IDs: 'browser', 'chat', 'notes', 'files',
+//          'terminal', 'snake', 'settings', 'docs'
+        
+// Global App Instances:
+BROWSERS[wcId]  // OBITBrowser instances
+CHAT[wcId]      // ChatApp instances
+NOTES[wcId]     // NotesApp instances
+FM[wcId]        // FileManagerApp instances
+SNAKE[wcId]     // SnakeGame instances
+TERM[wcId]      // TerminalApp instances
+SETT[wcId]      // SettingsApp instances
+DOCS[wcId]      // ArchDocsApp instances</div>`
+    };
+    return docs[k] || '<div class="arch-p">Documentation not found.</div>';
+  }
+}
+
+// === GLOBAL APP REGISTRIES ===
+const BROWSERS = {}, CHAT = {}, NOTES = {}, FM = {}, SNAKE = {}, TERM = {}, SETT = {}, DOCS = {};
+
+// === ORBIT MAIN CONTROLLER ===
+const ORBIT = {
+  apps: {
+    browser:  { title:'ORBIT Browser',   icon:'🌐', w:920, h:580 },
+    chat:     { title:'NOVA AI',         icon:'💬', w:480, h:580 },
+    notes:    { title:'Notes',           icon:'📝', w:680, h:500 },
+    files:    { title:'File Manager',    icon:'🗂️', w:720, h:500 },
+    terminal: { title:'Terminal',        icon:'⌨️', w:640, h:420 },
+    snake:    { title:'Cosmic Snake',    icon:'🐍', w:420, h:480 },
+    settings: { title:'Settings',        icon:'⚙️', w:660, h:500 },
+    docs:     { title:'Architecture Docs',icon:'📡',w:860, h:580 },
+  },
+
+  openApp(id) {
+    const app = this.apps[id];
+    if (!app) return;
+    const wcId = 'wc_' + id;
+    const iframeStyle = 'width:100%;height:100%;border:0';
+    const iframeSandbox = 'allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads allow-same-origin';
+    const iframeReferrerPolicy = 'no-referrer';
+    const appHtml =
+      id === 'browser'
+        ? `<iframe src="https://gnome-steader.github.io/scramjet-static/" style="${iframeStyle}" sandbox="${iframeSandbox}" referrerpolicy="${iframeReferrerPolicy}" allowfullscreen></iframe>`
+        : id === 'chat'
+          ? `<iframe src="https://thssandbox.com/apps/gnomesteder/orbitos/groq.html" style="${iframeStyle}" sandbox="${iframeSandbox}" referrerpolicy="${iframeReferrerPolicy}" allowfullscreen></iframe>`
+          : `<div id="${wcId}" style="width:100%;height:100%;overflow:hidden"></div>`;
+    WM.open({
+      id, title: app.title, icon: app.icon,
+      width: app.w, height: app.h,
+      html: appHtml
+    });
+    setTimeout(() => {
+      if (id === 'browser' || id === 'chat') return;
+      const wc = document.getElementById(wcId);
+      if (!wc) return;
+      if (id === 'notes')    NOTES[wcId] = new NotesApp(wcId);
+      else if (id === 'files')    FM[wcId] = new FileManagerApp(wcId);
+      else if (id === 'terminal') TERM[wcId] = new TerminalApp(wcId);
+      else if (id === 'snake')    SNAKE[wcId] = new SnakeGame(wcId);
+      else if (id === 'settings') SETT[wcId] = new SettingsApp(wcId);
+      else if (id === 'docs')     DOCS[wcId] = new ArchDocsApp(wcId);
+    }, 50);
+  },
+
+  buildDesktop() {
+    const desktop = document.getElementById('desktop');
+    const icons = [
+      { id:'browser',  emoji:'🌐', label:'ORBIT Browser' },
+      { id:'chat',     emoji:'💬', label:'NOVA AI' },
+      { id:'notes',    emoji:'📝', label:'Notes' },
+      { id:'files',    emoji:'🗂️', label:'Files' },
+      { id:'terminal', emoji:'⌨️', label:'Terminal' },
+      { id:'snake',    emoji:'🐍', label:'Snake' },
+      { id:'docs',     emoji:'📡', label:'Arch Docs' },
+      { id:'settings', emoji:'⚙️', label:'Settings' },
+    ];
+    const colors = ['rgba(0,200,255,0.15)','rgba(139,92,246,0.15)','rgba(16,185,129,0.15)',
+                    'rgba(245,158,11,0.15)','rgba(236,72,153,0.15)','rgba(0,200,255,0.12)',
+                    'rgba(139,92,246,0.12)','rgba(16,185,129,0.12)'];
+    desktop.innerHTML = icons.map((app,i) => `
+      <div class="desk-icon" ondblclick="ORBIT.openApp('${app.id}')">
+        <div class="desk-icon-img" style="background:${colors[i]};border:1px solid ${colors[i].replace('0.15','0.4').replace('0.12','0.35')}">${app.emoji}</div>
+        <div class="desk-icon-label">${app.label}</div>
+      </div>`).join('');
+  }
+};
+
+// === CLOCK ===
+function updateClock() {
+  const now = new Date();
+  const h = now.getHours().toString().padStart(2,'0');
+  const m = now.getMinutes().toString().padStart(2,'0');
+  const s = now.getSeconds().toString().padStart(2,'0');
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const clock = document.getElementById('dock-clock');
+  const date = document.getElementById('dock-date');
+  if (clock) clock.textContent = `${h}:${m}:${s}`;
+  if (date) date.textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
+}
+
+// === BOOT SEQUENCE ===
+const WM = new WindowManager();
+const STARS = new StarField();
+
+const bootMessages = [
+  'Initializing ORBIT kernel...',
+  'Loading Scramjet proxy engine...',
+  'Registering service worker...',
+  'Connecting to Bare server...',
+  'Mounting virtual filesystem...',
+  'Initializing NOVA AI...',
+  'Building desktop environment...',
+  'Launch sequence complete ✓'
+];
+
+let bootStep = 0;
+const bootBar = document.getElementById('boot-bar');
+const bootStatus = document.getElementById('boot-status');
+
+function bootTick() {
+  if (bootStep >= bootMessages.length) {
+    setTimeout(() => {
+      document.getElementById('boot').classList.add('hidden');
+      document.getElementById('os').style.display = 'block';
+      ORBIT.buildDesktop();
+      updateClock();
+      setInterval(updateClock, 1000);
+      setTimeout(() => ORBIT.openApp('browser'), 400);
+    }, 300);
+    return;
+  }
+  bootBar.style.width = ((bootStep + 1) / bootMessages.length * 100) + '%';
+  bootStatus.textContent = bootMessages[bootStep];
+  bootStep++;
+  setTimeout(bootTick, 280 + Math.random() * 200);
+}
+
+setTimeout(bootTick, 600);
+</script>
+</body>
+</html>
