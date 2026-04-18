@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1185,12 +1186,12 @@ class AppStoreApp {
         <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-family:'Orbitron',monospace;font-size:13px;color:var(--blue);letter-spacing:1px">
           ORBIT APP STORE
           <span style="display:block;font-family:'Rajdhani',sans-serif;font-size:11px;color:var(--text-dim);letter-spacing:0.5px;margin-top:2px">
-            Install apps from /apps.json
+            Install apps from the app list.
           </span>
         </div>
         <div id="${this.wc.id}_status" style="padding:10px 16px;font-size:11px;color:var(--text-dim)">${apps.length} app(s) available</div>
         <div style="flex:1;overflow:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:10px">
-          ${apps.length ? cards : `<div style="color:var(--text-dim);font-size:12px;padding:10px">No apps available in apps.json.</div>`}
+          ${apps.length ? cards : `<div style="color:var(--text-dim);font-size:12px;padding:10px">No apps available in app list.</div>`}
         </div>
       </div>
     `;
@@ -1803,7 +1804,7 @@ const ORBIT = {
   installedStorageKey: 'orbit_installed_apps',
   appCatalog: [],
   apps: {
-    browser:  { title:'ORBIT Browser',   icon:'🌐', w:920, h:580, url:'https://www.wikipedia.org/' },
+    browser:  { title:'ORBIT Browser',   icon:'🌐', w:920, h:580, url:'https://gnome-steader.github.io/scramjet-static/' },
     appstore: { title:'App Store',       icon:'🛒', w:760, h:560 },
     chat:     { title:'NOVA AI',         icon:'💬', w:480, h:580 },
     notes:    { title:'Notes',           icon:'📝', w:680, h:500 },
@@ -1840,7 +1841,7 @@ const ORBIT = {
 
   async loadCatalog() {
     try {
-      const res = await fetch('./apps.json');
+      const res = await fetch('https://raw.githubusercontent.com/Gnome-Steader/OrbitOS/refs/heads/copilot/auto-hide-bottom-menu/apps.json');
       if (!res.ok) throw new Error('Catalog fetch failed');
       const data = await res.json();
       const raw = Array.isArray(data) ? data : [];
