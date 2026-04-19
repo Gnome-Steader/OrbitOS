@@ -1210,8 +1210,8 @@ class SnakeGame {
     const key = (e.key || '').toLowerCase();
     const map = {ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
                  w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0}};
-    if (map[e.key] || map[key]) {
-      const d = map[e.key] || map[key];
+    const d = map[e.key] || map[key];
+    if (d) {
       if (d.x !== -this.dir.x || d.y !== -this.dir.y) { this.dir = d; e.preventDefault(); }
     }
     if (key === 'p') this.running = !this.running;
@@ -1808,7 +1808,7 @@ const ORBIT = {
     const icon = this._iconMarkup(appData);
     const encodedId = encodeURIComponent(appId);
     return `
-      <div class="dock-item" onclick="ORBIT.openApp(decodeURIComponent('${encodedId}'))" data-dock-app-id="${this.escapeHTML(appId)}">
+      <div class="dock-item" onclick="ORBIT.openApp(decodeURIComponent('${encodedId}'))">
         ${icon}
         <div class="dock-tooltip">${this.escapeHTML(appData.title || appId)}</div>
       </div>
@@ -1830,6 +1830,7 @@ const ORBIT = {
         const el = wrapper.firstElementChild;
         if (!el) return;
         el.setAttribute('data-installed-app', 'true');
+        el.setAttribute('data-dock-app-id', id);
         frag.appendChild(el);
       });
     dock.insertBefore(frag, firstSep);
@@ -1971,7 +1972,7 @@ function bootTick() {
 }
 
 async function startBootSequence() {
-  const wantsFullscreen = window.confirm('Do you want to enter full screen mode before ORBIT starts?');
+  const wantsFullscreen = window.confirm('Do you want to enter fullscreen mode before ORBIT starts?');
   if (wantsFullscreen && document.documentElement.requestFullscreen && !document.fullscreenElement) {
     try {
       await document.documentElement.requestFullscreen();
