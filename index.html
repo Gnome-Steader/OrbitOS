@@ -322,40 +322,40 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   </div>
   <div id="windows-layer"></div>
   <div id="dock">
-    <div class="dock-item" onclick="ORBIT.openApp('browser')" id="dock-browser">
+    <div class="dock-item" onclick="ORBIT.openApp('browser')" id="dock-browser" data-dock-app-id="browser">
       🌐
       <div class="dock-tooltip">ORBIT Browser</div>
     </div>
-    <div class="dock-item" onclick="ORBIT.openApp('appstore')" id="dock-appstore">
+    <div class="dock-item" onclick="ORBIT.openApp('appstore')" id="dock-appstore" data-dock-app-id="appstore">
       🛒
       <div class="dock-tooltip">App Store</div>
     </div>
-    <div class="dock-item" onclick="ORBIT.openApp('chat')" id="dock-chat">
+    <div class="dock-item" onclick="ORBIT.openApp('chat')" id="dock-chat" data-dock-app-id="chat">
       💬
       <div class="dock-tooltip">NOVA AI</div>
     </div>
-    <div class="dock-item" onclick="ORBIT.openApp('notes')" id="dock-notes">
+    <div class="dock-item" onclick="ORBIT.openApp('notes')" id="dock-notes" data-dock-app-id="notes">
       📝
       <div class="dock-tooltip">Notes</div>
     </div>
-    <div class="dock-item" onclick="ORBIT.openApp('files')" id="dock-files">
+    <div class="dock-item" onclick="ORBIT.openApp('files')" id="dock-files" data-dock-app-id="files">
       🗂️
       <div class="dock-tooltip">Files</div>
     </div>
-    <div class="dock-item" onclick="ORBIT.openApp('terminal')" id="dock-terminal">
+    <div class="dock-item" onclick="ORBIT.openApp('terminal')" id="dock-terminal" data-dock-app-id="terminal">
       ⌨️
       <div class="dock-tooltip">Terminal</div>
     </div>
-    <div class="dock-item" onclick="ORBIT.openApp('snake')" id="dock-snake">
+    <div class="dock-item" onclick="ORBIT.openApp('snake')" id="dock-snake" data-dock-app-id="snake">
       🐍
       <div class="dock-tooltip">Snake</div>
     </div>
     <div class="dock-sep"></div>
-    <div class="dock-item" onclick="ORBIT.openApp('settings')" id="dock-settings">
+    <div class="dock-item" onclick="ORBIT.openApp('settings')" id="dock-settings" data-dock-app-id="settings">
       ⚙️
       <div class="dock-tooltip">Settings</div>
     </div>
-    <div class="dock-item" onclick="ORBIT.openApp('docs')" id="dock-docs">
+    <div class="dock-item" onclick="ORBIT.openApp('docs')" id="dock-docs" data-dock-app-id="docs">
       📡
       <div class="dock-tooltip">Architecture Docs</div>
     </div>
@@ -515,6 +515,7 @@ class WindowManager {
       if (w.minimized) {
         w.el.classList.remove('minimized');
         w.minimized = false;
+        DOCK.refreshVisibility();
       }
       return;
     }
@@ -548,6 +549,7 @@ class WindowManager {
     this.focus(id);
     requestAnimationFrame(() => el.classList.add('open'));
     this._updateDock(id, true);
+    DOCK.refreshVisibility();
     return el;
   }
 
@@ -557,7 +559,7 @@ class WindowManager {
     w.el.classList.remove('open');
     w.el.style.opacity = '0';
     w.el.style.transform = 'scale(0.85)';
-    setTimeout(() => { w.el.remove(); delete this.windows[id]; }, 250);
+    setTimeout(() => { w.el.remove(); delete this.windows[id]; DOCK.refreshVisibility(); }, 250);
     this._updateDock(id, false);
   }
 
@@ -566,6 +568,7 @@ class WindowManager {
     if (!w) return;
     w.minimized = !w.minimized;
     w.el.classList.toggle('minimized', w.minimized);
+    DOCK.refreshVisibility();
   }
 
   toggleMax(id) {
@@ -648,7 +651,8 @@ class WindowManager {
   _onMouseUp() { this.dragging = null; this.resizing = null; }
 
   _updateDock(id, open) {
-    const btn = document.getElementById('dock-' + id.split('_')[0]);
+    const btn = Array.from(document.querySelectorAll('.dock-item[data-dock-app-id]'))
+      .find(el => el.getAttribute('data-dock-app-id') === id);
     if (btn) btn.classList.toggle('active', open);
   }
 }
@@ -677,7 +681,6 @@ const DOCK = {
   rafId: null,
   init() {
     if (!this.el) return;
-    this.el.classList.add('hidden');
     this.el.addEventListener('mouseenter', () => { this.hover = true; this.show(); });
     this.el.addEventListener('mouseleave', () => { this.hover = false; });
     document.addEventListener('mousemove', e => {
@@ -690,16 +693,38 @@ const DOCK = {
         if (evt) this._onPointerMove(evt);
       });
     });
-    document.addEventListener('touchstart', () => this.show(), { passive: true });
+    document.addEventListener('touchstart', () => this.refreshVisibility(), { passive: true });
+    this.refreshVisibility();
+  },
+  hasVisibleAppWindows() {
+    if (!window.WM?.windows) return false;
+    return Object.values(WM.windows).some(w => !w.minimized);
+  },
+  shouldAutoHide() {
+    return this.hasVisibleAppWindows();
+  },
+  refreshVisibility() {
+    if (!this.shouldAutoHide()) {
+      this.show();
+      return;
+    }
+    if (this.hover) this.show();
+    else this.hide();
   },
   _onPointerMove(e) {
     if (!this.el) return;
+    if (!this.shouldAutoHide()) {
+      this.show();
+      return;
+    }
     const nearBottom = e.clientY >= window.innerHeight - this.bottomEdgePixelThreshold;
     if (this.hover || nearBottom) this.show();
     else this.hide();
   },
   show() { this.el.classList.remove('hidden'); },
-  hide() { if (!this.hover) this.el.classList.add('hidden'); }
+  hide() {
+    if (!this.hover && this.shouldAutoHide()) this.el.classList.add('hidden');
+  }
 };
 
 // === BROWSER APP (legacy scramjet browser removed) ===
@@ -893,138 +918,6 @@ class ChatApp {
     this.history = [];
     document.getElementById(this.wc.id + '_msgs').innerHTML = '';
     setTimeout(() => this._addMsg('ai', 'Chat cleared. Ready for a new mission, Commander. 🚀'), 200);
-  }
-}
-
-// === FILE MANAGER ===
-class FileManagerApp {
-  constructor(wcId) {
-    this.wc = document.getElementById(wcId);
-    this.fs = {
-      '~': [
-        {name:'Documents',type:'dir',icon:'📁'},
-        {name:'Downloads',type:'dir',icon:'📥'},
-        {name:'Pictures',type:'dir',icon:'🖼️'},
-        {name:'Music',type:'dir',icon:'🎵'},
-        {name:'orbit.config.json',type:'file',icon:'⚙️',size:'2.4 KB'},
-        {name:'README.txt',type:'file',icon:'📄',size:'1.1 KB'},
-      ],
-      '~/Documents': [
-        {name:'notes.md',type:'file',icon:'📝',size:'4.2 KB'},
-        {name:'architecture.pdf',type:'file',icon:'📊',size:'1.2 MB'},
-        {name:'Projects',type:'dir',icon:'📁'},
-      ],
-      '~/Downloads': [
-        {name:'scramjet.zip',type:'file',icon:'📦',size:'3.4 MB'},
-        {name:'bare-server.tar.gz',type:'file',icon:'📦',size:'892 KB'},
-      ],
-      '~/Pictures': [
-        {name:'nebula_wallpaper.png',type:'file',icon:'🖼️',size:'4.8 MB'},
-        {name:'orbit_logo.svg',type:'file',icon:'🎨',size:'12 KB'},
-      ],
-    };
-    this.cwd = '~';
-    this.selected = null;
-    this._render();
-  }
-
-  _render() {
-    this.wc.innerHTML = `
-      <div class="fm">
-        <div class="fm-nav">
-          <div class="fm-nav-btn" onclick="FM['${this.wc.id}'].goUp()" title="Up">↑</div>
-          <div class="fm-nav-btn" onclick="FM['${this.wc.id}'].goHome()" title="Home">🏠</div>
-          <input class="fm-path" id="${this.wc.id}_path" value="${this.cwd}" readonly>
-          <div class="fm-actions">
-            <div class="fm-action-btn" onclick="FM['${this.wc.id}'].newFolder()">+ Folder</div>
-            <div class="fm-action-btn" onclick="FM['${this.wc.id}'].newFile()">+ File</div>
-          </div>
-        </div>
-        <div class="fm-body">
-          <div class="fm-sidebar">
-            <div class="fm-sidebar-sep">Places</div>
-            <div class="fm-sidebar-item active" onclick="FM['${this.wc.id}'].cd('~')">🏠 Home</div>
-            <div class="fm-sidebar-item" onclick="FM['${this.wc.id}'].cd('~/Documents')">📁 Documents</div>
-            <div class="fm-sidebar-item" onclick="FM['${this.wc.id}'].cd('~/Downloads')">📥 Downloads</div>
-            <div class="fm-sidebar-item" onclick="FM['${this.wc.id}'].cd('~/Pictures')">🖼️ Pictures</div>
-            <div class="fm-sidebar-sep">System</div>
-            <div class="fm-sidebar-item" onclick="FM['${this.wc.id}'].cd('~')">💾 ORBIT Drive</div>
-          </div>
-          <div class="fm-grid" id="${this.wc.id}_grid"></div>
-        </div>
-        <div class="fm-status-bar">
-          <span id="${this.wc.id}_count">0 items</span>
-          <span id="${this.wc.id}_sel">Nothing selected</span>
-        </div>
-      </div>
-    `;
-    this._renderGrid();
-  }
-
-  _renderGrid() {
-    const grid = document.getElementById(this.wc.id + '_grid');
-    const items = this.fs[this.cwd] || [];
-    grid.innerHTML = items.map((item,i) => `
-      <div class="fm-item${this.selected === i ? ' selected' : ''}"
-           onclick="FM['${this.wc.id}'].select(${i})"
-           ondblclick="FM['${this.wc.id}'].open(${i})">
-        <div class="fm-item-icon">${item.icon}</div>
-        <div class="fm-item-name">${item.name}</div>
-      </div>`).join('');
-    document.getElementById(this.wc.id + '_count').textContent = `${items.length} item${items.length!==1?'s':''}`;
-    document.getElementById(this.wc.id + '_path').value = this.cwd;
-    this.selected = null;
-    document.getElementById(this.wc.id + '_sel').textContent = 'Nothing selected';
-  }
-
-  select(i) {
-    this.selected = i;
-    const item = (this.fs[this.cwd] || [])[i];
-    document.getElementById(this.wc.id + '_sel').textContent = item ? `${item.name}${item.size ? ' · ' + item.size : ''}` : '';
-    this._renderGrid();
-    this.selected = i;
-    document.querySelectorAll(`#${this.wc.id}_grid .fm-item`).forEach((el,j) =>
-      el.classList.toggle('selected', j === i));
-  }
-
-  open(i) {
-    const item = (this.fs[this.cwd] || [])[i];
-    if (!item) return;
-    if (item.type === 'dir') this.cd(this.cwd + '/' + item.name.replace('~/', '').replace('~', ''));
-  }
-
-  cd(path) {
-    if (!this.fs[path]) {
-      this.fs[path] = [];
-    }
-    this.cwd = path;
-    this._renderGrid();
-    document.querySelectorAll(`#${this.wc.id.split('_')[0]}_ .fm-sidebar-item`).forEach(el =>
-      el.classList.remove('active'));
-  }
-
-  goUp() {
-    const parts = this.cwd.split('/');
-    if (parts.length > 1) this.cd(parts.slice(0,-1).join('/') || '~');
-    else this.cd('~');
-  }
-
-  goHome() { this.cd('~'); }
-
-  newFolder() {
-    const name = prompt('Folder name:');
-    if (!name) return;
-    if (!this.fs[this.cwd]) this.fs[this.cwd] = [];
-    this.fs[this.cwd].unshift({ name, type:'dir', icon:'📁' });
-    this._renderGrid();
-  }
-
-  newFile() {
-    const name = prompt('File name:');
-    if (!name) return;
-    if (!this.fs[this.cwd]) this.fs[this.cwd] = [];
-    this.fs[this.cwd].unshift({ name, type:'file', icon:'📄', size:'0 B' });
-    this._renderGrid();
   }
 }
 
@@ -1309,14 +1202,19 @@ class SnakeGame {
   }
 
   _key(e) {
-    if (!this.wc.offsetParent && !document.getElementById('win_snake')) return;
+    const snakeWin = document.getElementById('win_snake');
+    if (!snakeWin || !snakeWin.classList.contains('focused')) return;
+    const activeEl = document.activeElement;
+    const activeTag = (activeEl?.tagName || '').toLowerCase();
+    if (activeEl?.isContentEditable || activeTag === 'input' || activeTag === 'textarea') return;
+    const key = (e.key || '').toLowerCase();
     const map = {ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},
                  w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0}};
-    if (map[e.key]) {
-      const d = map[e.key];
+    const d = map[e.key] || map[key];
+    if (d) {
       if (d.x !== -this.dir.x || d.y !== -this.dir.y) { this.dir = d; e.preventDefault(); }
     }
-    if (e.key==='p') this.running = !this.running;
+    if (key === 'p') this.running = !this.running;
   }
 
   _spawnFood() {
@@ -1393,22 +1291,14 @@ class TerminalApp {
   _exec(raw) {
     const [cmd, ...args] = raw.split(' ');
     const cmds = {
-      help: () => this._print('\x1b[33mCommands:\x1b[0m ls, cd, pwd, echo, clear, scramjet, about, date'),
+      help: () => this._print('\x1b[33mCommands:\x1b[0m ls, cd, pwd, echo, clear, about, date'),
       ls: () => this._print(`\x1b[1;34m📁 Documents  📁 Downloads  📁 Pictures\x1b[0m\n📄 orbit.config.json  📄 README.txt`),
       pwd: () => this._print(`/home/orbit/${this.cwd.replace('~','')}`),
       cd: () => { this.cwd = args[0]||'~'; this._print(''); },
       echo: () => this._print(args.join(' ')),
       clear: () => { document.getElementById(this.wc.id + '_out').innerHTML=''; },
       date: () => this._print(new Date().toString()),
-      about: () => this._print(`\x1b[1;34mORBIT OS v1.0\x1b[0m — Browser Operating System\nPowered by Scramjet Proxy Engine`),
-      scramjet: () => {
-        const sub = args[0];
-        if (sub==='status') this._print('\x1b[33m[SJ]\x1b[0m Bare server: \x1b[31mOffline (backend needed)\x1b[0m\n[SJ] SW Path: ' + Scramjet.SW_PATH);
-        else if (sub==='encode' && args[1]) this._print('\x1b[32m' + Scramjet.encode(args[1]) + '\x1b[0m');
-        else if (sub==='decode' && args[1]) this._print('\x1b[32m' + Scramjet.decode(args[1]) + '\x1b[0m');
-        else if (sub==='rewrite' && args[1]) this._print('\x1b[32m' + Scramjet.rewrite(args.slice(1).join(' ')) + '\x1b[0m');
-        else this._print('Usage: scramjet [status|encode <url>|decode <str>|rewrite <url>]');
-      }
+      about: () => this._print(`\x1b[1;34mORBIT OS v1.0\x1b[0m — Browser Operating System`)
     };
     if (cmds[cmd]) cmds[cmd]();
     else this._print(`\x1b[31mCommand not found: ${cmd}\x1b[0m. Type \x1b[33mhelp\x1b[0m.`);
@@ -1786,29 +1676,30 @@ Scramjet.getServiceWorkerConfig(): SWConfig</div>
 BROWSERS[wcId]  // OBITBrowser instances
 CHAT[wcId]      // ChatApp instances
 NOTES[wcId]     // NotesApp instances
-FM[wcId]        // FileManagerApp instances
 SNAKE[wcId]     // SnakeGame instances
 TERM[wcId]      // TerminalApp instances
 SETT[wcId]      // SettingsApp instances
-DOCS[wcId]      // ArchDocsApp instances</div>`
+DOCS[wcId]      // ArchDocsApp instances
+// Files is served directly from iframe URL</div>`
     };
     return docs[k] || '<div class="arch-p">Documentation not found.</div>';
   }
 }
 
 // === GLOBAL APP REGISTRIES ===
-const BROWSERS = {}, CHAT = {}, NOTES = {}, FM = {}, SNAKE = {}, TERM = {}, SETT = {}, DOCS = {}, APPSTORE = {};
+const BROWSERS = {}, CHAT = {}, NOTES = {}, SNAKE = {}, TERM = {}, SETT = {}, DOCS = {}, APPSTORE = {};
 
 // === ORBIT MAIN CONTROLLER ===
 const ORBIT = {
   installedStorageKey: 'orbit_installed_apps',
   appCatalog: [],
+  _desktopEventsBound: false,
   apps: {
     browser:  { title:'ORBIT Browser',   icon:'🌐', w:920, h:580, url:'https://gnome-steader.github.io/scramjet-static/' },
     appstore: { title:'App Store',       icon:'🛒', w:760, h:560 },
     chat:     { title:'NOVA AI',         icon:'💬', w:480, h:580 },
     notes:    { title:'Notes',           icon:'📝', w:680, h:500 },
-    files:    { title:'File Manager',    icon:'🗂️', w:720, h:500 },
+    files:    { title:'Orbit Files',     icon:'🗂️', w:920, h:580, url:'https://gnome-steader.github.io/Orbit-files/' },
     terminal: { title:'Terminal',        icon:'⌨️', w:640, h:420 },
     snake:    { title:'Cosmic Snake',    icon:'🐍', w:420, h:480 },
     settings: { title:'Settings',        icon:'⚙️', w:660, h:500 },
@@ -1837,6 +1728,8 @@ const ORBIT = {
     await this.loadCatalog();
     this.syncInstalledApps();
     this.buildDesktop();
+    this.bindDesktopEvents();
+    this.buildDock();
   },
 
   async loadCatalog() {
@@ -1907,7 +1800,53 @@ const ORBIT = {
     }
     this.syncInstalledApps();
     this.buildDesktop();
+    this.buildDock();
     return true;
+  },
+
+  _dockItemHTML(appId, appData) {
+    const icon = this._iconMarkup(appData);
+    const encodedId = encodeURIComponent(appId);
+    return `
+      <div class="dock-item" onclick="ORBIT.openApp(decodeURIComponent('${encodedId}'))">
+        ${icon}
+        <div class="dock-tooltip">${this.escapeHTML(appData.title || appId)}</div>
+      </div>
+    `;
+  },
+
+  buildDock() {
+    const dock = document.getElementById('dock');
+    if (!dock) return;
+    const firstSep = dock.querySelector('.dock-sep');
+    dock.querySelectorAll('.dock-item[data-installed-app="true"]').forEach(el => el.remove());
+    if (!firstSep) return;
+    const frag = document.createDocumentFragment();
+    Object.keys(this.apps)
+      .filter(id => this.apps[id]?.installed)
+      .forEach(id => {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = this._dockItemHTML(id, this.apps[id]).trim();
+        const el = wrapper.firstElementChild;
+        if (!el) return;
+        el.setAttribute('data-installed-app', 'true');
+        el.setAttribute('data-dock-app-id', id);
+        frag.appendChild(el);
+      });
+    dock.insertBefore(frag, firstSep);
+  },
+
+  bindDesktopEvents() {
+    if (this._desktopEventsBound) return;
+    const desktop = document.getElementById('desktop');
+    if (!desktop) return;
+    desktop.addEventListener('dblclick', (event) => {
+      const icon = event.target.closest('.desk-icon[data-app-id]');
+      if (!icon || !desktop.contains(icon)) return;
+      const appId = icon.getAttribute('data-app-id');
+      if (appId) this.openApp(appId);
+    });
+    this._desktopEventsBound = true;
   },
 
   _iconMarkup(app) {
@@ -1942,7 +1881,6 @@ const ORBIT = {
       const wc = document.getElementById(wcId);
       if (!wc) return;
       if (id === 'notes')    NOTES[wcId] = new NotesApp(wcId);
-      else if (id === 'files')    FM[wcId] = new FileManagerApp(wcId);
       else if (id === 'terminal') TERM[wcId] = new TerminalApp(wcId);
       else if (id === 'snake')    SNAKE[wcId] = new SnakeGame(wcId);
       else if (id === 'settings') SETT[wcId] = new SettingsApp(wcId);
@@ -1971,9 +1909,8 @@ const ORBIT = {
                     'rgba(245,158,11,0.15)','rgba(236,72,153,0.15)','rgba(0,200,255,0.12)',
                     'rgba(139,92,246,0.12)','rgba(16,185,129,0.12)','rgba(245,158,11,0.12)'];
     desktop.innerHTML = icons.map((app,i) => {
-      const encodedId = encodeURIComponent(app.id);
       return `
-      <div class="desk-icon" ondblclick="ORBIT.openApp(decodeURIComponent('${encodedId}'))">
+      <div class="desk-icon" data-app-id="${ORBIT.escapeHTML(app.id)}">
         <div class="desk-icon-img" style="background:${colors[i % colors.length]};border:1px solid ${colors[i % colors.length].replace('0.15','0.4').replace('0.12','0.35')};overflow:hidden">${ORBIT._iconMarkup(ORBIT.apps[app.id] || {})}</div>
         <div class="desk-icon-label">${app.label || app.id}</div>
       </div>`;
@@ -2034,7 +1971,19 @@ function bootTick() {
   setTimeout(bootTick, 280 + Math.random() * 200);
 }
 
-setTimeout(bootTick, 600);
+async function startBootSequence() {
+  const wantsFullscreen = window.confirm('Do you want to enter fullscreen mode before ORBIT starts?');
+  if (wantsFullscreen && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch (error) {
+      console.warn('Fullscreen request failed:', error);
+    }
+  }
+  setTimeout(bootTick, 600);
+}
+
+startBootSequence();
 </script>
 </body>
 </html>
