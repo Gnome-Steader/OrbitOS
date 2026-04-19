@@ -561,7 +561,6 @@ class WindowManager {
     w.el.style.transform = 'scale(0.85)';
     setTimeout(() => { w.el.remove(); delete this.windows[id]; DOCK.refreshVisibility(); }, 250);
     this._updateDock(id, false);
-    DOCK.refreshVisibility();
   }
 
   minimize(id) {
@@ -652,9 +651,8 @@ class WindowManager {
   _onMouseUp() { this.dragging = null; this.resizing = null; }
 
   _updateDock(id, open) {
-    const targetId = id;
     const btn = Array.from(document.querySelectorAll('.dock-item[data-dock-app-id]'))
-      .find(el => el.getAttribute('data-dock-app-id') === targetId);
+      .find(el => el.getAttribute('data-dock-app-id') === id);
     if (btn) btn.classList.toggle('active', open);
   }
 }
@@ -1205,8 +1203,7 @@ class SnakeGame {
 
   _key(e) {
     const snakeWin = document.getElementById('win_snake');
-    const focusedWin = document.querySelector('.window.focused');
-    if (!snakeWin || focusedWin !== snakeWin) return;
+    if (!snakeWin || !snakeWin.classList.contains('focused')) return;
     const activeEl = document.activeElement;
     const activeTag = (activeEl?.tagName || '').toLowerCase();
     if (activeEl?.isContentEditable || activeTag === 'input' || activeTag === 'textarea') return;
