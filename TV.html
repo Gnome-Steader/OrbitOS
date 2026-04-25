@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Free TV – GitHub Pages Version</title>
+
+  <!-- HLS.js for Chrome/Edge/Firefox -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    #sidebar {
+      width: 250px;
+      background: #111;
+      padding: 15px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      border-right: 2px solid #222;
+    }
+    .ch {
+      padding: 10px;
+      background: #222;
+      margin-bottom: 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: 0.2s;
+    }
+    .ch:hover {
+      background: #333;
+    }
+    #playerArea {
+      flex: 1;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h2>Free TV</h2>
+
+  <div class="ch" onclick="play('https://static.france24.com/live/F24_EN_HI_HLS/live_tv.m3u8')">
+    France 24 English
+  </div>
+
+  <div class="ch" onclick="play('https://live-hls-web-aje.getaj.net/AJE/01.m3u8')">
+    Al Jazeera English
+  </div>
+
+  <div class="ch" onclick="play('https://cbsn-us.cbsnews.com/out/v1/4c9e1f6f0f3a4e3c8b0c9c8a9e3f0f3a/master.m3u8')">
+    CBS News
+  </div>
+
+  <div class="ch" onclick="play('https://liveprodapnortheast.global.ssl.fastly.net/ap1/Channel-APTVqvs-AWS-tokyo-1/playlist.m3u8')">
+    Bloomberg Global
+  </div>
+</div>
+
+<div id="playerArea">
+  <video id="tv" controls autoplay muted></video>
+</div>
+
+<script>
+let hls;
+
+function play(url) {
+  const video = document.getElementById("tv");
+
+  if (hls) hls.destroy();
+
+  if (Hls.isSupported()) {
+    hls = new Hls();
+    hls.loadSource(url);
+    hls.attachMedia(video);
+  } else {
+    video.src = url; // Safari fallback
+  }
+}
+</script>
+
+</body>
+</html>
